@@ -100,24 +100,25 @@ server <- function(input, output, session) {
 
   do_simulate <- function() {
     err_msg(NULL)
+    vals <- isolate(reactiveValuesToList(input))
     tryCatch({
-      if (nzchar(trimws(input$data_path))) {
-        copulapop::set_data_path(trimws(input$data_path))
+      if (nzchar(trimws(vals$data_path))) {
+        copulapop::set_data_path(trimws(vals$data_path))
       }
       withProgress(message = "Virtuele populatie genereren (copulapop) ...", value = 0.2, {
-        pop <- generate_virtual_population(input$dataset, input$n_subj,
-                                           input$age_range, input$sex, input$seed)
+        pop <- generate_virtual_population(vals$dataset, vals$n_subj,
+                                           vals$age_range, vals$sex, vals$seed)
       })
       withProgress(message = "Monte Carlo PK-simulatie ...", value = 0.6, {
-        res <- simulate_population_pk(pop, dose_mgkg = input$dose_mgkg, tau = 24,
-                                      n_doses = input$n_doses, iov_cv = input$iov_cv,
-                                      ka_bsv = input$ka_bsv,
-                                      seed = input$seed + 1000L)
+        res <- simulate_population_pk(pop, dose_mgkg = vals$dose_mgkg, tau = 24,
+                                      n_doses = vals$n_doses, iov_cv = vals$iov_cv,
+                                      ka_bsv = vals$ka_bsv,
+                                      seed = vals$seed + 1000L)
       })
       sim_res(list(pop = pop, res = res))
       showNotification(
         sprintf("Simulatie voltooid: N = %d kinderen, dosis %.2f mg/kg, IOV %d%% CV",
-                nrow(pop), input$dose_mgkg, input$iov_cv),
+                nrow(pop), vals$dose_mgkg, vals$iov_cv),
         type = "message", duration = 5
       )
     }, error = function(e) {
