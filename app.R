@@ -194,7 +194,15 @@ server <- function(input, output, session) {
       geom_line(aes(y = q95), color = "#2c7fb8", linetype = "dashed") +
       geom_line(aes(y = q05), color = "#2c7fb8", linetype = "dashed") +
       geom_line(color = "#08306b", linewidth = 1.2) +
-      labs(
+      do.call(labs, if (pub) list(
+        x = "Time after dose (h)",
+        y = "Plasma dapagliflozine concentration (ng/mL)",
+        title = sprintf("Steady-state concentration-time profile (dosing interval %g h)", st$tau),
+        subtitle = sprintf(
+          "Median + 90%% prediction interval (P5-P95), N = %d, dose %.2f mg/kg per dose, interval %g h, %d doses, IOV on F1 %d%% CV, age %.1f-%.1f y",
+          st$n, st$dose_mgkg, st$tau, st$n_doses, st$iov_f1_cv, min(s$pop$AGE), max(s$pop$AGE)
+        )
+      ) else list(
         x = "Tijd na dosis (uur)",
         y = "Dapagliflozine in plasma (ng/mL)",
         title = sprintf("Steady-state concentratie-tijdcurve (dosisinterval %g h)", st$tau),
@@ -202,7 +210,7 @@ server <- function(input, output, session) {
           "Mediaan + 90%% predictie-interval (P5-P95), N = %d, dosis %.2f mg/kg, interval %g h, %d doses, IOV op F1 %d%% CV, leeftijd %.1f-%.1f jaar",
           st$n, st$dose_mgkg, st$tau, st$n_doses, st$iov_f1_cv, min(s$pop$AGE), max(s$pop$AGE)
         )
-      )
+      ))
     if (isTRUE(show_indiv)) {
       idx <- sample(seq_len(nrow(s$pop)), min(30, nrow(s$pop)))
       indiv <- data.frame(
@@ -218,13 +226,13 @@ server <- function(input, output, session) {
       p <- p + geom_line(data = cs1, aes(x = t, y = median),
                          color = "#d94801", linetype = "dotdash", linewidth = 1) +
         annotate("text", x = Inf, y = Inf, hjust = 1.05, vjust = 1.5,
-                 label = "oranje = mediaan dag 1", color = "#d94801", size = 3.5)
+                 label = if (pub) "orange = median day 1" else "oranje = mediaan dag 1", color = "#d94801", size = 3.5)
     }
     if (!is.null(obs) && nrow(obs) > 0) {
       p <- p + geom_point(data = obs, aes(x = time, y = conc), inherit.aes = FALSE,
                           color = "#D55E00", size = 2.4, alpha = 0.9) +
         annotate("text", x = -Inf, y = Inf, hjust = -0.05, vjust = 1.6,
-                 label = sprintf("oranje punten = gemeten data (n = %d)", nrow(obs)),
+                 label = sprintf(if (pub) "orange points = observed data (n = %d)" else "oranje punten = gemeten data (n = %d)", nrow(obs)),
                  color = "#D55E00", size = 3.5)
     }
     if (isTRUE(log_y)) p <- p + scale_y_log10()

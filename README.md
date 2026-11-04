@@ -15,6 +15,7 @@ De virtuele kinderen worden gegenereerd met het
   op de curve.
 - **Publication-ready figuur**: download de curve als PNG/PDF/SVG/TIFF met instelbare
   breedte/hoogte (inch) en resolutie (dpi, raster) — inclusief de gemeten overlay.
+  De export gebruikt **Engelstalige as- en titelteksten** (het scherm blijft Nederlands).
 - **Steady-state metrieken**: Cmax,ss, Tmax, Cmin,ss (= trough C(τ)), AUCtau,ss en Cavg,ss —
   als populatiesamenvatting (mediaan [P5–P95]) én als verdelingen per kind.
 - **Dosis per gift in mg/kg** (invoerveld) — dit is de **keerdosis per toediening**, niet de dagdosis (dagdosis = keerdosis × 24/τ); omgerekend per kind op basis van gewicht.
