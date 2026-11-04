@@ -42,13 +42,13 @@ nonmem_omega <- function() {
 
 # EGFR in mL/min/1.73m2 ophalen uit de copulapop-populatie.
 # copulapop berekent EGFR zelf, maar alleen als de dataset CREAT bevat
-# (NHANES, KNHANES, RUMC, RUMC_IC):
+# (in de app: NHANES, RUMC):
 #   <18 jaar : bedside Schwartz  eGFR = 0.413 * lengte(cm) / Scr(mg/dL)
 #   >=18 jaar: CKD-EPI 2021 (race-free)
 # Beide formules leveren mL/min/1.73m2 — precies de eenheid waarin het
 # NONMEM covariaat EGFR is gedefinieerd (THETA(6)*EGFR). Er is dus
 # GEEN omrekening met BSA nodig (dat zou absoluut GFR in mL/min geven).
-# Fallback bij datasets zonder creatinine (CHNS, HSE, TANZANIA): geschatte
+# Fallback bij datasets zonder creatinine (in de app: HSE): geschatte
 # normale eGFR per 1.73m2 als functie van leeftijd (GFR-maturatie, Hill).
 egfr_from_copula <- function(pop) {
   n <- nrow(pop)

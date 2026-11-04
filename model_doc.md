@@ -66,12 +66,12 @@ Het NONMEM covariaat is **eGFR in mL/min/1.73m²** (renale slope in L/h per mL/m
 dus er is **geen omrekening met BSA** nodig (BSA × eGFR/1.73 zou absoluut GFR in mL/min geven).
 
 `copulapop::generate_population()` berekent zelf een kolom `EGFR` in exact deze eenheid,
-maar **alleen voor datasets die creatinine bevatten** (NHANES, KNHANES, RUMC, RUMC_IC):
+maar **alleen voor datasets die creatinine bevatten** (in de app: NHANES, RUMC):
 
 - **< 18 jaar**: bedside Schwartz — `eGFR = 0.413 × lengte(cm) / Scr(mg/dL)`
 - **≥ 18 jaar**: CKD-EPI 2021 (race-free)
 
-Bij datasets **zonder creatinine** (CHNS, HSE, TANZANIA) ontbreekt de EGFR-kolom; de app
+Bij datasets **zonder creatinine** (in de app: HSE) ontbreekt de EGFR-kolom; de app
 valt dan terug op een geschatte **normale eGFR per 1.73m² per leeftijd**
 (GFR-maturatie: `pmax(30, 120·AGE^1.7/(0.75^1.7 + AGE^1.7))`). De gebruikte bron staat in het
 tabblad "Virtuele populatie".

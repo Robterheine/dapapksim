@@ -16,7 +16,7 @@ De virtuele kinderen worden gegenereerd met het
   via `copulapop::generate_population(..., age_range = ...)`.
 - **Inter-occasion variabiliteit (IOV)**: schuifje (0–100% CV) dat per dosing occasion
   een eigen log-normale multiplier op de klaring (CL) legt.
-- Keuze uit copulapop datasets (NHANES, KNHANES, CHNS, HSE, TANZANIA, RUMC, RUMC_IC),
+- Keuze uit copulapop datasets (NHANES, HSE, RUMC),
   geslacht, aantal kinderen, aantal doses tot steady state, random seed.
 - Download van curve-samenvatting en per-kind metrieken als CSV.
 

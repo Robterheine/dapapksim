@@ -1,16 +1,24 @@
+required_pkgs <- c("shiny", "ggplot2", "markdown",
+                   "VineCopula", "data.table", "jsonlite", "Matrix", "MASS",
+                   "copulapop")
+missing_pkgs <- required_pkgs[!vapply(required_pkgs, requireNamespace, logical(1), quietly = TRUE)]
+if (length(missing_pkgs) > 0) {
+  stop("Ontbrekende packages: ", paste(missing_pkgs, collapse = ", "), "\n",
+       "Installeer met:\n",
+       "  install.packages(c(\"shiny\", \"ggplot2\", \"markdown\", \"VineCopula\", \"data.table\", \"jsonlite\", \"Matrix\", \"MASS\"))\n",
+       "  devtools::install_github(\"Robterheine/copulapop\")")
+}
 library(shiny)
 library(ggplot2)
+library(markdown)
+library(copulapop)
 
 for (f in list.files("R", pattern = "\\.R$", full.names = TRUE)) source(f)
 
 datasets <- c(
   "NHANES (USA, algemene bevolking)" = "NHANES",
-  "KNHANES (Zuid-Korea, algemene bevolking)" = "KNHANES",
-  "CHNS (China, algemene bevolking)" = "CHNS",
   "HSE (Engeland, algemene bevolking)" = "HSE",
-  "TANZANIA (DHS survey)" = "TANZANIA",
-  "RUMC (Nederland, ziekenhuispopulatie)" = "RUMC",
-  "RUMC_IC (Nederland, IC)" = "RUMC_IC"
+  "RUMC (Nederland, ziekenhuispopulatie)" = "RUMC"
 )
 
 ui <- fluidPage(
