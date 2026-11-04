@@ -1,0 +1,25 @@
+body {
+  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+}
+
+.sidebar {
+  background-color: #f5f8fc;
+  border-right: 1px solid #dce6f2;
+}
+
+.sidebar h4 {
+  color: #08306b;
+  font-weight: 600;
+}
+
+.well h4 {
+  margin-top: 0;
+}
+
+.alert-danger {
+  margin-bottom: 12px;
+}
+
+#run {
+  margin-bottom: 6px;
+}
