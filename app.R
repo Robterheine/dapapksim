@@ -37,7 +37,7 @@ ui <- fluidPage(
       sliderInput("age_range", "Leeftijdsrange (jaren)", min = 0, max = 18, value = c(0, 5), step = 0.5),
       selectInput("dataset", "Virtuele populatie (copulapop dataset)", choices = datasets, selected = "RUMC"),
       selectInput("sex", "Geslacht", choices = c("Beide" = "both", "Jongen" = "male", "Meisje" = "female")),
-      sliderInput("n_subj", "Aantal kinderen (N)", min = 50, max = 2000, value = 500, step = 50),
+      sliderInput("n_subj", "Aantal kinderen (N)", min = 50, max = 2000, value = 1000, step = 50),
       hr(),
       h4("Weergave"),
       checkboxInput("show_indiv", "Toon individuele curves (max. 30)", value = FALSE),
