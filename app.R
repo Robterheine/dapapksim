@@ -46,7 +46,11 @@ ui <- fluidPage(
       h4("Weergave"),
       checkboxInput("show_indiv", "Toon individuele curves (max. 30)", value = FALSE),
       checkboxInput("show_day1", "Toon mediaan dag 1 (eerste dosis)", value = FALSE),
-      checkboxInput("log_y", "Logaritmische y-as", value = FALSE)
+      checkboxInput("log_y", "Logaritmische y-as", value = FALSE),
+      hr(),
+      h4("Gemeten data (overlay)"),
+      fileInput("obs_file", "Gemeten PK-data (CSV/TSV; kolommen TAD of TIME + DV of CONC)", accept = c(".csv", ".tsv", ".txt")),
+      checkboxInput("show_obs", "Toon gemeten data als overlay op de curve", value = TRUE)
     ),
     mainPanel(
       width = 9,
@@ -57,6 +61,15 @@ ui <- fluidPage(
           "PK-curve (steady state)",
           plotOutput("pk_curve", height = "580px"),
           helpText("De band is een 90% predictie-interval over individuen (P5-P95). Alleen inter-individuele variabiliteit (IIV, plus optionele IOV per dosis) wordt gesimuleerd; residuele error ($SIGMA / EPS) wordt NIET gesimuleerd."),
+          hr(),
+          wellPanel(
+            h4("Publication-ready figuur downloaden"),
+            selectInput("fig_format", "Formaat", choices = c("PNG (raster)" = "png", "PDF (vector)" = "pdf", "SVG (vector)" = "svg", "TIFF (raster)" = "tiff"), selected = "png"),
+            numericInput("fig_width", "Breedte (inch)", value = 7, min = 3, max = 20, step = 0.5),
+            numericInput("fig_height", "Hoogte (inch)", value = 5, min = 3, max = 20, step = 0.5),
+            numericInput("fig_dpi", "Resolutie (dpi; rasterformaten)", value = 600, min = 72, max = 1200, step = 50),
+            downloadButton("dl_fig", "Download figuur (incl. gemeten overlay indien aangevinkt)")
+          ),
           hr(),
           downloadButton("dl_curve", "Download curve-samenvatting (CSV)"),
           downloadButton("dl_metrics", "Download steady-state metrieken per kind (CSV)")
@@ -144,8 +157,25 @@ server <- function(input, output, session) {
   do_simulate()  # eerste simulatie bij opstarten
 
   # ---------- PK-curve ----------
-  output$pk_curve <- renderPlot({
-    s <- sim_res(); req(s)
+  obs_df <- reactive({
+    f <- input$obs_file
+    if (is.null(f)) return(NULL)
+    first <- readLines(f$datapath, n = 1, warn = FALSE)
+    sep <- if (grepl("\t", first)) "\t" else if (grepl(";", first)) ";" else ","
+    df <- utils::read.table(f$datapath, header = TRUE, sep = sep, stringsAsFactors = FALSE,
+                            na.strings = c("NA", "", "."), check.names = FALSE)
+    time_col <- intersect(c("TAD", "TIME", "Time", "time", "tad"), names(df))[1]
+    conc_col <- intersect(c("DV", "CONC", "Conc", "conc", "CPRED", "IPRED"), names(df))[1]
+    if (is.na(time_col) || is.na(conc_col)) {
+      showNotification("Gemeten data: kolom niet gevonden. Vereist een tijd-kolom (TAD of TIME) en een concentratie-kolom (DV of CONC).", type = "error", duration = 10)
+      return(NULL)
+    }
+    if ("MDV" %in% names(df)) df <- df[is.na(df$MDV) | df$MDV == 0, , drop = FALSE]
+    out <- data.frame(time = as.numeric(df[[time_col]]), conc = as.numeric(df[[conc_col]]))
+    out[!is.na(out$time) & !is.na(out$conc) & out$conc >= 0, , drop = FALSE]
+  })
+
+  build_curve_plot <- function(s, show_indiv, show_day1, log_y, obs = NULL, pub = FALSE) {
     st <- s$res$settings
     cs <- curve_summary(s$res$curve_ss, s$res$times)
     p <- ggplot(cs, aes(x = t, y = median)) +
@@ -161,10 +191,8 @@ server <- function(input, output, session) {
           "Mediaan + 90%% predictie-interval (P5-P95), N = %d, dosis %.2f mg/kg, interval %g h, %d doses, IOV op F1 %d%% CV, leeftijd %.1f-%.1f jaar",
           st$n, st$dose_mgkg, st$tau, st$n_doses, st$iov_f1_cv, min(s$pop$AGE), max(s$pop$AGE)
         )
-      ) +
-      theme_minimal(base_size = 14) +
-      theme(plot.title = element_text(face = "bold"))
-    if (isTRUE(input$show_indiv)) {
+      )
+    if (isTRUE(show_indiv)) {
       idx <- sample(seq_len(nrow(s$pop)), min(30, nrow(s$pop)))
       indiv <- data.frame(
         t = rep(s$res$times, each = length(idx)),
@@ -174,16 +202,58 @@ server <- function(input, output, session) {
       p <- p + geom_line(data = indiv, aes(x = t, y = C, group = ID),
                          color = "grey55", alpha = 0.35, linewidth = 0.4)
     }
-    if (isTRUE(input$show_day1)) {
+    if (isTRUE(show_day1)) {
       cs1 <- curve_summary(s$res$curve_day1, s$res$times)
       p <- p + geom_line(data = cs1, aes(x = t, y = median),
                          color = "#d94801", linetype = "dotdash", linewidth = 1) +
         annotate("text", x = Inf, y = Inf, hjust = 1.05, vjust = 1.5,
                  label = "oranje = mediaan dag 1", color = "#d94801", size = 3.5)
     }
-    if (isTRUE(input$log_y)) p <- p + scale_y_log10()
-    p
+    if (!is.null(obs) && nrow(obs) > 0) {
+      p <- p + geom_point(data = obs, aes(x = time, y = conc), inherit.aes = FALSE,
+                          color = "#D55E00", size = 2.4, alpha = 0.9) +
+        annotate("text", x = -Inf, y = Inf, hjust = -0.05, vjust = 1.6,
+                 label = sprintf("oranje punten = gemeten data (n = %d)", nrow(obs)),
+                 color = "#D55E00", size = 3.5)
+    }
+    if (isTRUE(log_y)) p <- p + scale_y_log10()
+    if (pub) {
+      p + theme_bw(base_size = 14) +
+        theme(plot.title = element_text(face = "bold"),
+              panel.grid.minor = element_blank())
+    } else {
+      p + theme_minimal(base_size = 14) +
+        theme(plot.title = element_text(face = "bold"))
+    }
+  }
+
+  output$pk_curve <- renderPlot({
+    s <- sim_res(); req(s)
+    obs <- if (isTRUE(input$show_obs)) obs_df() else NULL
+    build_curve_plot(s, input$show_indiv, input$show_day1, input$log_y, obs = obs, pub = FALSE)
   })
+
+  output$dl_fig <- downloadHandler(
+    filename = function() paste0("dapagliflozine_pk_curve.", input$fig_format),
+    content = function(file) {
+      s <- sim_res(); req(s)
+      obs <- if (isTRUE(input$show_obs)) obs_df() else NULL
+      p <- build_curve_plot(s, input$show_indiv, input$show_day1, input$log_y, obs = obs, pub = TRUE)
+      fmt <- input$fig_format
+      w <- input$fig_width; h <- input$fig_height; dpi <- input$fig_dpi
+      if (fmt == "png") {
+        grDevices::png(file, width = w, height = h, units = "in", res = dpi)
+      } else if (fmt == "tiff") {
+        grDevices::tiff(file, width = w, height = h, units = "in", res = dpi)
+      } else if (fmt == "pdf") {
+        grDevices::pdf(file, width = w, height = h)
+      } else {
+        grDevices::svg(file, width = w, height = h)
+      }
+      print(p)
+      grDevices::dev.off()
+    }
+  )
 
   # ---------- Steady-state metrieken ----------
   output$ss_table <- renderTable({
