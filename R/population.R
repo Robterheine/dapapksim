@@ -61,7 +61,8 @@ generate_virtual_population <- function(dataset, n, age_range, sex = "both", see
     if (!is.null(first_err))
       stop("copulapop::generate_population faalde: ", conditionMessage(first_err))
     stop("copulapop kon geen populatie genereren voor deze instellingen.")
-  }  warning(sprintf("Slechts %d van %d gevraagde kinderen gegenereerd in de leeftijdsrange %g-%g jaar.",
+  }
+  warning(sprintf("Slechts %d van %d gevraagde kinderen gegenereerd in de leeftijdsrange %g-%g jaar.",
                   nrow(best), n, age_range[1], age_range[2]))
   best
 }
