@@ -92,7 +92,7 @@ ui <- fluidPage(
           "Virtuele populatie",
           verbatimTextOutput("pop_info"),
           plotOutput("pop_plots", height = "360px"),
-          h4("Eerste 100 kinderen uit de virtuele populatie"),
+          h4("Eerste 100 kinderen uit de virtuele populatie (incl. de in de simulatie gebruikte eGFR)"),
           tableOutput("pop_table")
         ),
         tabPanel(
@@ -368,7 +368,8 @@ server <- function(input, output, session) {
     pl <- rbind(
       data.frame(variabele = "Leeftijd (jaren)", waarde = pop$AGE),
       data.frame(variabele = "Gewicht (kg)", waarde = pop$WEIGHT),
-      data.frame(variabele = "BMI (kg/m2)", waarde = pop$BMI)
+      data.frame(variabele = "BMI (kg/m2)", waarde = pop$BMI),
+      data.frame(variabele = "eGFR (mL/min/1.73m2)", waarde = s$res$metrics$EGFR)
     )
     ggplot(pl, aes(x = waarde)) +
       geom_histogram(bins = 30, fill = "#2c7fb8", color = "white") +
@@ -382,6 +383,10 @@ server <- function(input, output, session) {
     s <- sim_res(); req(s)
     pop <- s$pop
     out <- as.data.frame(lapply(pop, function(x) if (is.numeric(x)) round(x, 2) else x))
+    if ("EGFR" %in% names(out)) out$EGFR <- NULL
+    egfr_used <- s$res$metrics$EGFR
+    idx <- if ("ID" %in% names(out)) match(out$ID, s$res$metrics$ID) else seq_len(nrow(out))
+    out[["EGFR (mL/min/1.73m2)"]] <- round(egfr_used[idx], 1)
     head(out, 100)
   })
 
