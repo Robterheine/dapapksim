@@ -41,10 +41,10 @@ copulapop_dataset_info <- function(dataset) {
 generate_virtual_population <- function(dataset, n, age_range, sex = "both", seed = 1) {
   ensure_copulapop()
   best <- NULL
-  for (k in c(1, 3, 6, 12)) {
-    pop <- copulapop::generate_population(dataset, n = n * k,
-                                          age_range = age_range, sex = sex,
-                                          seed = seed)
+  for (k in c(1, 2, 4, 8, 16, 32, 64)) {
+    pop <- suppressWarnings(copulapop::generate_population(
+      dataset, n = min(n * k, 200000), age_range = age_range, sex = sex,
+      seed = seed))
     if (is.null(pop) || nrow(pop) == 0) next
     if (nrow(pop) >= n) {
       set.seed(as.integer((as.numeric(seed) + 1) %% 2147483647))
