@@ -183,12 +183,13 @@ simulate_population_pk <- function(pop,
     CL = p$CL, KA = p$KA, V2 = p$V2, V3 = p$V3, Q = p$Q,
     DOSE_MG = dose_mgkg * p$BWT
   )
-  metrics$Cmax <- apply(curve_last, 1, max)
-  metrics$Tmax <- times[apply(curve_last, 1, which.max)]
+  imax <- max.col(curve_last, ties.method = "first")
+  imax[is.na(imax)] <- 1L
+  metrics$Cmax <- curve_last[cbind(seq_len(n), imax)]
+  metrics$Tmax <- times[imax]
   metrics$Cmin <- curve_last[, n_out]  # trough = C(tau)
-  metrics$AUCtau <- apply(curve_last, 1, function(x) {
-    sum(diff(times) * (head(x, -1) + tail(x, -1)) / 2)
-  })
+  w_half <- diff(times) / 2
+  metrics$AUCtau <- as.vector((curve_last[, -1, drop = FALSE] + curve_last[, -n_out, drop = FALSE]) %*% w_half)
   metrics$Cavg <- metrics$AUCtau / tau
 
   list(
