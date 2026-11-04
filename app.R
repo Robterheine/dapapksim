@@ -49,7 +49,9 @@ ui <- fluidPage(
       checkboxInput("log_y", "Logaritmische y-as", value = FALSE),
       hr(),
       h4("Gemeten data (overlay)"),
-      fileInput("obs_file", "Gemeten PK-data (CSV/TSV; kolommen TAD of TIME + DV of CONC)", accept = c(".csv", ".tsv", ".txt")),
+      fileInput("obs_file", "Upload CSV/TSV (kolommen TAD of TIME + DV of CONC) — of plak hieronder", accept = c(".csv", ".tsv", ".txt")),
+      textAreaInput("obs_text", "Of plak gemeten data hier (bv. TAD,DV per regel)", rows = 5,
+                    placeholder = "TAD,DV\n0.5,12.3\n1,88.1\n2,101.5\n24,3.9"),
       checkboxInput("show_obs", "Toon gemeten data als overlay op de curve", value = TRUE)
     ),
     mainPanel(
@@ -157,22 +159,32 @@ server <- function(input, output, session) {
   do_simulate()  # eerste simulatie bij opstarten
 
   # ---------- PK-curve ----------
-  obs_df <- reactive({
-    f <- input$obs_file
-    if (is.null(f)) return(NULL)
-    first <- readLines(f$datapath, n = 1, warn = FALSE)
+  parse_obs_text <- function(txt) {
+    if (is.null(txt) || !nzchar(trimws(txt))) return(NULL)
+    first <- strsplit(txt, "\n", fixed = TRUE)[[1]][1]
     sep <- if (grepl("\t", first)) "\t" else if (grepl(";", first)) ";" else ","
-    df <- utils::read.table(f$datapath, header = TRUE, sep = sep, stringsAsFactors = FALSE,
+    df <- utils::read.table(text = txt, header = TRUE, sep = sep, stringsAsFactors = FALSE,
                             na.strings = c("NA", "", "."), check.names = FALSE)
     time_col <- intersect(c("TAD", "TIME", "Time", "time", "tad"), names(df))[1]
     conc_col <- intersect(c("DV", "CONC", "Conc", "conc", "CPRED", "IPRED"), names(df))[1]
-    if (is.na(time_col) || is.na(conc_col)) {
-      showNotification("Gemeten data: kolom niet gevonden. Vereist een tijd-kolom (TAD of TIME) en een concentratie-kolom (DV of CONC).", type = "error", duration = 10)
-      return(NULL)
-    }
+    if (is.na(time_col) || is.na(conc_col)) return(NULL)
     if ("MDV" %in% names(df)) df <- df[is.na(df$MDV) | df$MDV == 0, , drop = FALSE]
     out <- data.frame(time = as.numeric(df[[time_col]]), conc = as.numeric(df[[conc_col]]))
     out[!is.na(out$time) & !is.na(out$conc) & out$conc >= 0, , drop = FALSE]
+  }
+
+  obs_df <- reactive({
+    if (!is.null(input$obs_text) && nzchar(trimws(input$obs_text))) {
+      d <- parse_obs_text(input$obs_text)
+      if (is.null(d)) showNotification("Handmatig geplakte data: geen kolommen TAD/TIME + DV/CONC gevonden.", type = "error", duration = 10)
+      return(d)
+    }
+    f <- input$obs_file
+    if (is.null(f)) return(NULL)
+    txt <- paste(readLines(f$datapath, warn = FALSE), collapse = "\n")
+    d <- parse_obs_text(txt)
+    if (is.null(d)) showNotification("Geupload bestand: kolom niet gevonden. Vereist een tijd-kolom (TAD of TIME) en een concentratie-kolom (DV of CONC).", type = "error", duration = 10)
+    d
   })
 
   build_curve_plot <- function(s, show_indiv, show_day1, log_y, obs = NULL, pub = FALSE) {
@@ -341,6 +353,7 @@ server <- function(input, output, session) {
       sprintf("eGFR: mediaan %.0f mL/min/1.73m2 (range %.0f-%.0f)",
               median(s$res$metrics$EGFR), min(s$res$metrics$EGFR), max(s$res$metrics$EGFR)),
       sprintf("eGFR-bron: %s", s$res$settings$egfr_source),
+      sprintf("eGFR-eenheid: mL/min/1.73m2 — %s", s$res$settings$egfr_unit_note),
       if (!is.null(info)) sprintf("Dataset bevat creatinine: %s",
                                   if (isTRUE(info$has_creatinine)) "ja" else "nee") else "", 
       sprintf("Geslacht: %d%% jongen", round(100 * mean(pop$SEXISMALE)))

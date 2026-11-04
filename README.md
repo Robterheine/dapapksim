@@ -9,8 +9,10 @@ De virtuele kinderen worden gegenereerd met het
 
 - **PK-curve bij steady state**: mediaan + 90% predictie-interval (P5–P95) over de
   virtuele populatie, optioneel individuele curves, mediaan van dag 1, log-y-as.
-- **Gemeten PK-data als overlay**: upload een CSV/TSV (kolommen `TAD` of `TIME` in uur
-  na dosis + `DV` of `CONC` in ng/mL); de metingen verschijnen als punten op de curve.
+- **Gemeten PK-data als overlay**: upload een CSV/TSV **of plak de data direct in het
+  tekstveld** in de sidebar (kolommen `TAD` of `TIME` in uur na dosis + `DV` of `CONC`
+  in ng/mL, bv. `TAD,DV` met per regel `0.5,12.3`); de metingen verschijnen als punten
+  op de curve.
 - **Publication-ready figuur**: download de curve als PNG/PDF/SVG/TIFF met instelbare
   breedte/hoogte (inch) en resolutie (dpi, raster) — inclusief de gemeten overlay.
 - **Steady-state metrieken**: Cmax,ss, Tmax, Cmin,ss (= trough C(τ)), AUCtau,ss en Cavg,ss —
