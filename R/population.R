@@ -47,7 +47,7 @@ generate_virtual_population <- function(dataset, n, age_range, sex = "both", see
                                           seed = seed)
     if (is.null(pop) || nrow(pop) == 0) next
     if (nrow(pop) >= n) {
-      set.seed(seed + 1L)
+      set.seed(as.integer((as.numeric(seed) + 1) %% 2147483647))
       return(pop[sample(nrow(pop), n), , drop = FALSE])
     }
     if (is.null(best) || nrow(pop) > nrow(best)) best <- pop

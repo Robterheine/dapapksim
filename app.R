@@ -129,7 +129,7 @@ server <- function(input, output, session) {
   do_simulate <- function() {
     err_msg(NULL)
     vals <- isolate(reactiveValuesToList(input))
-    seed <- as.integer(format(Sys.time(), "%Y%m%d%H%M%S")) %% 2147483647L
+    seed <- as.integer(as.numeric(Sys.time()) %% 2147483647)
     tryCatch({
       if (is.null(vals$dose_mgkg) || is.na(vals$dose_mgkg) || vals$dose_mgkg <= 0)
         stop("Dosis per gift (mg/kg) moet een positief getal zijn.")
@@ -140,7 +140,7 @@ server <- function(input, output, session) {
       withProgress(message = "Monte Carlo PK-simulatie ...", value = 0.6, {
         res <- simulate_population_pk(pop, dose_mgkg = vals$dose_mgkg, tau = vals$tau,
                                       n_doses = vals$n_doses, iov_f1_cv = vals$iov_cv,
-                                      seed = seed + 1000L)
+                                      seed = as.integer((as.numeric(seed) + 1000) %% 2147483647))
       })
       sim_res(list(pop = pop, res = res))
       showNotification(
