@@ -112,9 +112,24 @@ geplot vs eGFR en vs leeftijd met een LOESS-trendlijn.
   lineaire split `CL = 5.44 + 0.177·eGFR` (afgeleid uit Tabel S4, R² = 0.9985 — zie
   `docs/HANDOVER_renale_CL_UGT1A9_maturatie.md`). Gevalideerd in `VALIDATION.md`
   (AUC-ratio's per eGFR-stratum iets vlakker dan in het artikel).
-- **Identificeerbaarheid maturatie**: de pediatrische brondata betroffen 11–17 jaar (MAT = 1
-  voor alle subjecten), dus THETA 10–12 zijn **gefixeerd uit de literatuur** (Farhan 2024),
-  niet schatbaar uit de data; het maturatie-effect is alleen zichtbaar bij extrapolatie < ~2 jaar.
+- **Maturatiefunctie (UGT1A9)** — welke, hoe, waarom:
+  - *Functie*: Hill-functie `MAT(AGE) = Fbirth + (1 − Fbirth)·AGE^n / (Age50^n + AGE^n)`
+    = `0.05 + 0.95·AGE^1.9 / (0.09^1.9 + AGE^1.9)` (AGE in jaren; THETA 10–12).
+    Waarden: 0 j → 0,05; 0,09 j (Age50) → 0,525; 0,5 j → 0,965; ≥ ~2 j → ≈ 1.
+  - *Implementatie*: alleen op de **niet-renale** klaring, als pure leeftijdsfactor los van
+    allometrie — `CLnr = 5.44 · MAT(AGE) · (BWT/84)^0.75` (in de app: `individual_params()` in
+    `R/pk_model.R`). De renale component schaalt via eGFR, die bij kinderen al
+    leeftijd/size-gecorrigeerd is (bedside Schwartz).
+  - *Waarom*: Farhan et al. 2024 (doi:10.1002/jcph.2484, Table 1, **in-vivo** UGT1A9 via
+    propofol-CL): Fbirth = 0.05, Age50 = 0.09 jaar, n = 1.9 (AdultMax = 1.1 is genormaliseerd
+    naar 1 omdat adult-CLnr hier het referentiepunt is). De in-vivo activity-based
+    ontogeny gaf de beste PBPK-voorspelling (MSE 0.05 vs 0.104/0.129 in-vitro). Miyagi 2012
+    (exponentieel, 90% plateau op ~4 maanden) komt hiermee overeen: UGT1A9 is praktisch
+    volwassen binnen ~1 jaar. De abundance-curve (Age50 8.2 j) is een outlier en niet bruikbaar
+    voor klaring.
+  - *Identificeerbaarheid*: de pediatrische brondata betroffen 11–17 jaar (MAT = 1 voor alle
+    subjecten), dus THETA 10–12 zijn **gefixeerd uit de literatuur**, niet schatbaar uit de
+    data; het maturatie-effect is alleen zichtbaar bij extrapolatie < ~2 jaar.
 - **IOV op F1** is een extensie t.o.v. het NONMEM-model. De getoonde steady-state curve is het
   **laatste doseringsinterval** en reflecteert per kind één F1-trekking; de 90% band bevat
   daarmee óók de occasion-to-occasion spreiding van die laatste dosis.
