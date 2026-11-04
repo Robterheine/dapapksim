@@ -81,3 +81,10 @@ IOV op F1 (toegediende dosis) per dosis; dosisinterval τ instelbaar.
 Zie `model_doc.md` in de app voor de volledige mapping.
 
 Let op: dit is een educatief/visualisatiemodel — geen gevalideerd doseringsadvies.
+
+## Auteur
+
+Rob ter Heine — Radboud Applied Pharmacometrics group, Radboudumc
+([website](https://www.radboudumc.nl/en/research/research-groups/applied-pharmacometrics)),
+r.terheine@radboudumc.nl. Ontwikkeld met behulp van Mistral (Mistral AI).
+Laatste versie: [github.com/Robterheine/dapapksim](https://github.com/Robterheine/dapapksim).

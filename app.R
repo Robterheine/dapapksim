@@ -94,6 +94,10 @@ ui <- fluidPage(
         tabPanel(
           "Model & assumpties",
           includeMarkdown("model_doc.md")
+        ),
+        tabPanel(
+          "Over deze app",
+          includeMarkdown("about.md")
         )
       )
     )
