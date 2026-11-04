@@ -343,7 +343,7 @@ server <- function(input, output, session) {
                                   info$country, info$population,
                                   format(info$n_total, big.mark = ","),
                                   info$age_range[1], info$age_range[2]) else "",
-      sprintf("Gegenereerde virtuele populatie: N = %d", nrow(pop)),
+      sprintf("Gegenereerde virtuele populatie: N = %d (gevraagd: %d)", nrow(pop), input$n_subj),
       sprintf("Leeftijd: mediaan %.1f jaar (range %.1f-%.1f)",
               median(pop$AGE), min(pop$AGE), max(pop$AGE)),
       sprintf("Gewicht: mediaan %.1f kg (range %.1f-%.1f)",
