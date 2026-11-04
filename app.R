@@ -149,8 +149,11 @@ server <- function(input, output, session) {
         type = "message", duration = 5
       )
     }, error = function(e) {
-      err_msg(conditionMessage(e))
-      showNotification(paste("Fout:", conditionMessage(e)), type = "error", duration = 10)
+      msg <- conditionMessage(e)
+      if (!is.null(conditionCall(e)))
+        msg <- paste0(msg, "  [call: ", paste(deparse(conditionCall(e)), collapse = " "), "]")
+      err_msg(msg)
+      showNotification(paste("Fout:", msg), type = "error", duration = 10)
     })
   }
 

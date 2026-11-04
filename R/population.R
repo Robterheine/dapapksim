@@ -40,11 +40,16 @@ copulapop_dataset_info <- function(dataset) {
 # met een grotere request-n gewerkt todat n kinderen beschikbaar zijn.
 generate_virtual_population <- function(dataset, n, age_range, sex = "both", seed = 1) {
   ensure_copulapop()
+  n <- as.numeric(n)
+  age_range <- as.numeric(age_range)
   best <- NULL
+  first_err <- NULL
   for (k in c(1, 2, 4, 8, 16, 32, 64)) {
-    pop <- suppressWarnings(copulapop::generate_population(
-      dataset, n = min(n * k, 200000), age_range = age_range, sex = sex,
-      seed = seed))
+    pop <- tryCatch(
+      suppressWarnings(copulapop::generate_population(
+        dataset, n = min(n * k, 200000), age_range = age_range, sex = sex,
+        seed = seed)),
+      error = function(e) { if (is.null(first_err)) first_err <<- e; NULL })
     if (is.null(pop) || nrow(pop) == 0) next
     if (nrow(pop) >= n) {
       set.seed(as.integer((as.numeric(seed) + 1) %% 2147483647))
@@ -52,8 +57,11 @@ generate_virtual_population <- function(dataset, n, age_range, sex = "both", see
     }
     if (is.null(best) || nrow(pop) > nrow(best)) best <- pop
   }
-  if (is.null(best)) stop("copulapop kon geen populatie genereren voor deze instellingen.")
-  warning(sprintf("Slechts %d van %d gevraagde kinderen gegenereerd in de leeftijdsrange %g-%g jaar.",
+  if (is.null(best)) {
+    if (!is.null(first_err))
+      stop("copulapop::generate_population faalde: ", conditionMessage(first_err))
+    stop("copulapop kon geen populatie genereren voor deze instellingen.")
+  }  warning(sprintf("Slechts %d van %d gevraagde kinderen gegenereerd in de leeftijdsrange %g-%g jaar.",
                   nrow(best), n, age_range[1], age_range[2]))
   best
 }
