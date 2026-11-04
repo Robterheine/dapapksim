@@ -32,7 +32,7 @@ ui <- fluidPage(
       hr(),
       sliderInput("dose_mgkg", "Dosis (mg/kg)", min = 0.02, max = 0.5, value = 0.15, step = 0.01),
       sliderInput("age_range", "Leeftijdsrange (jaren)", min = 0, max = 18, value = c(10, 17), step = 0.5),
-      selectInput("dataset", "Virtuele populatie (copulapop dataset)", choices = datasets, selected = "NHANES"),
+      selectInput("dataset", "Virtuele populatie (copulapop dataset)", choices = datasets, selected = "RUMC"),
       selectInput("sex", "Geslacht", choices = c("Beide" = "both", "Jongen" = "male", "Meisje" = "female")),
       sliderInput("n_subj", "Aantal kinderen (N)", min = 50, max = 2000, value = 500, step = 50),
       sliderInput("tau", "Dosisinterval (uur)", min = 12, max = 48, value = 24, step = 1),

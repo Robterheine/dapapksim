@@ -27,7 +27,8 @@ De virtuele kinderen worden gegenereerd met het
   occasion een eigen log-normale multiplier op de relatieve biologische beschikbaarheid
   legt — gemodelleerd voor variabiliteit in toegediende dosis bij kinderen
   (tablet opgelost en via de sonde toegediend).
-- Keuze uit copulapop datasets (NHANES, HSE, RUMC),
+- Keuze uit copulapop datasets (NHANES, HSE, RUMC; standaard **RUMC** — Nederlandse
+  ziekenhuispopulatie met creatinine/eGFR),
   geslacht, aantal kinderen, aantal doses tot steady state, random seed.
 - Download van curve-samenvatting en per-kind metrieken als CSV.
 
