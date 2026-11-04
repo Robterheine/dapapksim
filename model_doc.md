@@ -97,7 +97,7 @@ bereik 5–300 mL/min/1.73m² liggen; het resultaat staat in het tabblad "Virtue
 
 ## Steady state & metrieken
 
-Dosis = mg/kg × BWT; dosisinterval τ instelbaar in de app (12–48 h, standaard 24 h).
+Dosis = mg/kg × BWT; dosisinterval τ instelbaar in de app (0–12 h, stap 1 h, standaard 12 h; τ = 0 wordt afgevangen met een foutmelding).
 Na `n_doses` doses geldt het laatste interval als steady state. Per kind: **Cmax,ss**,
 **Tmax**, **Cmin,ss (= C(τ))**, **AUCtau,ss** (trapeziumregel 0–τ), **Cavg,ss = AUCtau/τ**.
 In het tabblad "AUC & Cmax vs nierfunctie / leeftijd" worden AUCtau,ss en Cmax,ss

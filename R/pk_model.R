@@ -63,7 +63,12 @@ egfr_from_copula <- function(pop) {
     age <- pop$AGE[miss]
     egfr[miss] <- pmax(30, 120 * age^1.7 / (0.75^1.7 + age^1.7))
   }
-  list(egfr = egfr, source = source)
+  unit_note <- if (all(egfr >= 5 & egfr <= 300)) {
+    "sanity-check OK: alle waarden in plausibel bereik 5-300 mL/min/1.73m2"
+  } else {
+    "WAARSCHUWING: waarden buiten 5-300 — controleer de eenheid (mL/min/1.73m2 verwacht)"
+  }
+  list(egfr = egfr, source = source, unit_note = unit_note)
 }
 
 # Individuele parameters uit de virtuele populatie (covariaten + allometrie)
@@ -103,6 +108,7 @@ simulate_population_pk <- function(pop,
                                    om = nonmem_omega(),
                                    dt = 0.05,
                                    out_by = 0.1) {
+  if (tau <= 0) stop("Dosisinterval (tau) moet groter dan 0 uur zijn.")
   set.seed(seed)
   n <- nrow(pop)
   egfr_info <- egfr_from_copula(pop)
@@ -194,7 +200,7 @@ simulate_population_pk <- function(pop,
     metrics = metrics,
     settings = list(dose_mgkg = dose_mgkg, tau = tau, n_doses = n_doses,
                     iov_f1_cv = iov_f1_cv, ka_bsv = ka_bsv, seed = seed, n = n,
-                    egfr_source = egfr_info$source)
+                    egfr_source = egfr_info$source, egfr_unit_note = egfr_info$unit_note)
   )
 }
 
