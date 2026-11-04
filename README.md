@@ -17,7 +17,7 @@ De virtuele kinderen worden gegenereerd met het
   breedte/hoogte (inch) en resolutie (dpi, raster) — inclusief de gemeten overlay.
 - **Steady-state metrieken**: Cmax,ss, Tmax, Cmin,ss (= trough C(τ)), AUCtau,ss en Cavg,ss —
   als populatiesamenvatting (mediaan [P5–P95]) én als verdelingen per kind.
-- **Dosis in mg/kg** (schuifje), omgerekend per kind op basis van gewicht.
+- **Dosis per gift in mg/kg** (invoerveld) — dit is de **keerdosis per toediening**, niet de dagdosis (dagdosis = keerdosis × 24/τ); omgerekend per kind op basis van gewicht.
 - **Dosisinterval (τ)** instelbaar in uren (0–24 h, stap 1 h, standaard 24 h; τ = 0 geeft
   een foutmelding).
 - **Tabblad "AUC & Cmax vs nierfunctie / leeftijd"**: 2×2-plot (AUCtau,ss en Cmax,ss
@@ -30,7 +30,8 @@ De virtuele kinderen worden gegenereerd met het
   (tablet opgelost en via de sonde toegediend).
 - Keuze uit copulapop datasets (NHANES, HSE, RUMC; standaard **RUMC** — Nederlandse
   ziekenhuispopulatie met creatinine/eGFR),
-  geslacht, aantal kinderen, aantal doses tot steady state, random seed.
+  geslacht, aantal kinderen, aantal doses tot steady state. De random seed wordt
+  automatisch gegenereerd uit de huidige datum/tijd (elke run is dus anders).
 - Download van curve-samenvatting en per-kind metrieken als CSV.
 
 ## Installatie
@@ -50,8 +51,8 @@ Vereist R ≥ 4.1 en ggplot2 ≥ 3.4.
 shiny::runApp("/pad/naar/dapagliflozin-pk-app")
 ```
 
-Als de copulapop JSON-data niet automatisch worden gevonden, vul dan in de app het
-veld "copulapop data-pad" in (bv. `system.file("data", package = "copulapop")`).
+Als de copulapop JSON-data niet automatisch worden gevonden, stel dan vóór het starten
+in R in: `copulapop::set_data_path(system.file("data", package = "copulapop"))`.
 
 ## Bestandsstructuur
 

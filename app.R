@@ -30,18 +30,14 @@ ui <- fluidPage(
       h4("Simulatie-instellingen"),
       actionButton("run", "Simuleer", icon = icon("play"), class = "btn-primary btn-lg", width = "100%"),
       hr(),
-      sliderInput("dose_mgkg", "Dosis (mg/kg)", min = 0.02, max = 0.5, value = 0.15, step = 0.01),
+      numericInput("dose_mgkg", "Dosis per gift (mg/kg) — keerdosis, niet de dagdosis", value = 0.15, min = 0.01, step = 0.01),
       sliderInput("tau", "Dosisinterval (uur) tussen twee doses", min = 0, max = 24, value = 24, step = 1),
       sliderInput("n_doses", "Aantal doses tot steady state", min = 3, max = 14, value = 7, step = 1),
       sliderInput("iov_cv", "Inter-occasion variabiliteit op F1 / toegediende dosis (%CV per dosis)", min = 0, max = 100, value = 0, step = 5),
-      sliderInput("age_range", "Leeftijdsrange (jaren)", min = 0, max = 18, value = c(10, 17), step = 0.5),
+      sliderInput("age_range", "Leeftijdsrange (jaren)", min = 0, max = 18, value = c(0, 5), step = 0.5),
       selectInput("dataset", "Virtuele populatie (copulapop dataset)", choices = datasets, selected = "RUMC"),
       selectInput("sex", "Geslacht", choices = c("Beide" = "both", "Jongen" = "male", "Meisje" = "female")),
       sliderInput("n_subj", "Aantal kinderen (N)", min = 50, max = 2000, value = 500, step = 50),
-      checkboxInput("ka_bsv", "BSV op Ka meenemen (omega^2 = 8.52, vastgezet in publicatie)", value = TRUE),
-      numericInput("seed", "Random seed", value = 42, min = 1),
-      textInput("data_path", "copulapop data-pad (leeg = automatisch)", value = "",
-                placeholder = "bv. /pad/naar/copulapop/data"),
       hr(),
       h4("Weergave"),
       checkboxInput("show_indiv", "Toon individuele curves (max. 30)", value = FALSE),
@@ -120,9 +116,8 @@ server <- function(input, output, session) {
       lo <- max(0, floor(info$age_range[1]))
       hi <- min(18, ceiling(info$age_range[2]))
       if (lo < hi) {
-        v_lo <- max(lo, min(10, hi))
-        v_hi <- min(hi, max(17, lo))
-        updateSliderInput(session, "age_range", min = lo, max = hi, value = c(v_lo, v_hi))
+        v <- pmin(pmax(input$age_range, lo), hi)
+        updateSliderInput(session, "age_range", min = lo, max = hi, value = v)
       }
     }
   })
@@ -130,24 +125,23 @@ server <- function(input, output, session) {
   do_simulate <- function() {
     err_msg(NULL)
     vals <- isolate(reactiveValuesToList(input))
+    seed <- as.integer(format(Sys.time(), "%Y%m%d%H%M%S")) %% 2147483647L
     tryCatch({
-      if (nzchar(trimws(vals$data_path))) {
-        copulapop::set_data_path(trimws(vals$data_path))
-      }
+      if (is.null(vals$dose_mgkg) || is.na(vals$dose_mgkg) || vals$dose_mgkg <= 0)
+        stop("Dosis per gift (mg/kg) moet een positief getal zijn.")
       withProgress(message = "Virtuele populatie genereren (copulapop) ...", value = 0.2, {
         pop <- generate_virtual_population(vals$dataset, vals$n_subj,
-                                           vals$age_range, vals$sex, vals$seed)
+                                           vals$age_range, vals$sex, seed)
       })
       withProgress(message = "Monte Carlo PK-simulatie ...", value = 0.6, {
         res <- simulate_population_pk(pop, dose_mgkg = vals$dose_mgkg, tau = vals$tau,
                                       n_doses = vals$n_doses, iov_f1_cv = vals$iov_cv,
-                                      ka_bsv = vals$ka_bsv,
-                                      seed = vals$seed + 1000L)
+                                      seed = seed + 1000L)
       })
       sim_res(list(pop = pop, res = res))
       showNotification(
-        sprintf("Simulatie voltooid: N = %d kinderen, dosis %.2f mg/kg, IOV %d%% CV",
-                nrow(pop), vals$dose_mgkg, vals$iov_cv),
+        sprintf("Simulatie voltooid: N = %d kinderen, dosis %.2f mg/kg per gift, IOV %d%% CV, seed %d",
+                nrow(pop), vals$dose_mgkg, vals$iov_cv, seed),
         type = "message", duration = 5
       )
     }, error = function(e) {

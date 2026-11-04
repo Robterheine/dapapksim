@@ -45,7 +45,7 @@ V2   = 73.47 * (BWT/84);  V3 = 168.5 * (BWT/84);  Q = 9.137 * (BWT/84)^0.75
 ## Variabiliteit
 
 - **IIV** (log-normaal, exp(ETA)), conform `$OMEGA BLOCK(3)`:
-  - ETA(1) op KA: ω² = **8.52 FIX** (vastgezet in de publicatie) — in/uit te schakelen met de checkbox.
+  - ETA(1) op KA: ω² = **8.52 FIX** (vastgezet in de publicatie; altijd meegenomen).
   - ETA(2) op CL/F: ω² = 0.1136 (≈34% CV)
   - ETA(3) op Vp/F: ω² = 0.8229 (≈105% CV)
   - geen BSV op V2 en Q in dit model.
@@ -97,7 +97,7 @@ bereik 5–300 mL/min/1.73m² liggen; het resultaat staat in het tabblad "Virtue
 
 ## Steady state & metrieken
 
-Dosis = mg/kg × BWT; dosisinterval τ instelbaar in de app (0–24 h, stap 1 h, standaard 24 h; τ = 0 wordt afgevangen met een foutmelding).
+Dosis per gift = mg/kg × BWT (dit is de **keerdosis per toediening**, geen dagdosis); dosisinterval τ instelbaar in de app (0–24 h, stap 1 h, standaard 24 h; τ = 0 wordt afgevangen met een foutmelding). De random seed wordt per run gegenereerd uit datum/tijd.
 Na `n_doses` doses geldt het laatste interval als steady state. Per kind: **Cmax,ss**,
 **Tmax**, **Cmin,ss (= C(τ))**, **AUCtau,ss** (trapeziumregel 0–τ), **Cavg,ss = AUCtau/τ**.
 In het tabblad "AUC & Cmax vs nierfunctie / leeftijd" worden AUCtau,ss en Cmax,ss
