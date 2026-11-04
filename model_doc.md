@@ -50,7 +50,9 @@ V2   = 73.47 * (BWT/84);  V3 = 168.5 * (BWT/84);  Q = 9.137 * (BWT/84)^0.75
   - ETA(3) op Vp/F: ω² = 0.8229 (≈105% CV)
   - geen BSV op V2 en Q in dit model.
 - **IOV** (schuifje, extensie t.o.v. het NONMEM model): per dosing occasion een eigen
-  log-normale multiplier op CL met CV = ingestelde %.
+  log-normale multiplier op de **relatieve biologische beschikbaarheid F1** (de dosis die
+  het depot in gaat), met CV = ingestelde %. Gemodelleerd vanwege variabiliteit in de
+  toegediende dosis bij kinderen (tablet opgelost, via sonde toegediend).
 - **Residuele fout ($SIGMA / EPS) wordt expres NIET gesimuleerd** — alleen
   inter-individuele variabiliteit (en optionele IOV). De gesimuleerde curve per kind is
   de deterministische verwachte concentratie (A2/V2 gegeven de ETA's); de 90% band is
@@ -85,9 +87,11 @@ tabblad "Virtuele populatie".
 
 ## Steady state & metrieken
 
-Dosis = mg/kg × BWT, 1× per dag (τ = 24 h). Na `n_doses` doses geldt het laatste
-interval als steady state. Per kind: **Cmax,ss**, **Tmax**, **Cmin,ss (= C24)**,
-**AUCtau,ss** (trapeziumregel 0–24 h), **Cavg,ss = AUCtau/24**.
+Dosis = mg/kg × BWT; dosisinterval τ instelbaar in de app (12–48 h, standaard 24 h).
+Na `n_doses` doses geldt het laatste interval als steady state. Per kind: **Cmax,ss**,
+**Tmax**, **Cmin,ss (= C(τ))**, **AUCtau,ss** (trapeziumregel 0–τ), **Cavg,ss = AUCtau/τ**.
+In het tabblad "AUC & Cmax vs nierfunctie / leeftijd" worden AUCtau,ss en Cmax,ss
+geplot vs eGFR en vs leeftijd met een LOESS-trendlijn.
 
 ## Verificatie tegen Penland et al. 2023 (doi:10.1002/jcph.2196)
 
@@ -127,7 +131,7 @@ gepubliceerde model-predicted waarden. Kleine afwijkingen zijn te verwachten:
 
 ## Beperkingen
 
-- Vereenvoudiging: IOV op CL is een extensie (zit niet in het NONMEM model); residuele
+- Vereenvoudiging: IOV op F1 is een extensie (zit niet in het NONMEM model); residuele
   fout niet gesimuleerd; Ka-BSV geclamped voor numerieke stabiliteit.
 - Virtuele populaties zijn algemene-bevolkings-/ziekenhuispopulaties, geen T2DM-patiënten.
 - Educatief/visualisatiemodel — geen doseringsadvies.

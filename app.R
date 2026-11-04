@@ -35,8 +35,9 @@ ui <- fluidPage(
       selectInput("dataset", "Virtuele populatie (copulapop dataset)", choices = datasets, selected = "NHANES"),
       selectInput("sex", "Geslacht", choices = c("Beide" = "both", "Jongen" = "male", "Meisje" = "female")),
       sliderInput("n_subj", "Aantal kinderen (N)", min = 50, max = 2000, value = 500, step = 50),
-      sliderInput("n_doses", "Aantal doses 1x/dag (tot steady state)", min = 3, max = 14, value = 7, step = 1),
-      sliderInput("iov_cv", "Inter-occasion variabiliteit op CL (%CV per dosis)", min = 0, max = 100, value = 0, step = 5),
+      sliderInput("tau", "Dosisinterval (uur)", min = 12, max = 48, value = 24, step = 1),
+      sliderInput("n_doses", "Aantal doses tot steady state", min = 3, max = 14, value = 7, step = 1),
+      sliderInput("iov_cv", "Inter-occasion variabiliteit op F1 / toegediende dosis (%CV per dosis)", min = 0, max = 100, value = 0, step = 5),
       checkboxInput("ka_bsv", "BSV op Ka meenemen (omega^2 = 8.52, vastgezet in publicatie)", value = TRUE),
       numericInput("seed", "Random seed", value = 42, min = 1),
       textInput("data_path", "copulapop data-pad (leeg = automatisch)", value = "",
@@ -66,6 +67,10 @@ ui <- fluidPage(
           tableOutput("ss_table"),
           plotOutput("metric_plots", height = "380px"),
           plotOutput("auc_age", height = "380px")
+        ),
+        tabPanel(
+          "AUC & Cmax vs nierfunctie / leeftijd",
+          plotOutput("exposure_covariates", height = "720px")
         ),
         tabPanel(
           "Virtuele populatie",
@@ -118,8 +123,8 @@ server <- function(input, output, session) {
                                            vals$age_range, vals$sex, vals$seed)
       })
       withProgress(message = "Monte Carlo PK-simulatie ...", value = 0.6, {
-        res <- simulate_population_pk(pop, dose_mgkg = vals$dose_mgkg, tau = 24,
-                                      n_doses = vals$n_doses, iov_cv = vals$iov_cv,
+        res <- simulate_population_pk(pop, dose_mgkg = vals$dose_mgkg, tau = vals$tau,
+                                      n_doses = vals$n_doses, iov_f1_cv = vals$iov_cv,
                                       ka_bsv = vals$ka_bsv,
                                       seed = vals$seed + 1000L)
       })
@@ -151,10 +156,10 @@ server <- function(input, output, session) {
       labs(
         x = "Tijd na dosis (uur)",
         y = "Dapagliflozine in plasma (ng/mL)",
-        title = "Steady-state concentratie-tijdcurve (1x/dag)",
+        title = sprintf("Steady-state concentratie-tijdcurve (dosisinterval %g h)", st$tau),
         subtitle = sprintf(
-          "Mediaan + 90%% predictie-interval (P5-P95), N = %d, dosis %.2f mg/kg, leeftijd %.1f-%.1f jaar, IOV op CL %d%% CV, %d doses",
-          st$n, st$dose_mgkg, min(s$pop$AGE), max(s$pop$AGE), st$iov_cv, st$n_doses
+          "Mediaan + 90%% predictie-interval (P5-P95), N = %d, dosis %.2f mg/kg, interval %g h, %d doses, IOV op F1 %d%% CV, leeftijd %.1f-%.1f jaar",
+          st$n, st$dose_mgkg, st$tau, st$n_doses, st$iov_f1_cv, min(s$pop$AGE), max(s$pop$AGE)
         )
       ) +
       theme_minimal(base_size = 14) +
@@ -183,7 +188,7 @@ server <- function(input, output, session) {
   # ---------- Steady-state metrieken ----------
   output$ss_table <- renderTable({
     s <- sim_res(); req(s)
-    summ <- summarize_metrics(s$res$metrics)
+    summ <- summarize_metrics(s$res$metrics, tau = s$res$settings$tau)
     summ[] <- lapply(summ, function(x) if (is.numeric(x)) round(x, 2) else x)
     summ
   }, striped = TRUE, hover = TRUE, width = "100%")
@@ -216,6 +221,34 @@ server <- function(input, output, session) {
            title = "Steady-state AUC vs leeftijd") +
       theme_minimal(base_size = 13) +
       theme(plot.title = element_text(face = "bold"))
+  })
+
+  output$exposure_covariates <- renderPlot({
+    s <- sim_res(); req(s)
+    m <- s$res$metrics
+    m$Geslacht <- factor(m$SEXISMALE, levels = c(0, 1), labels = c("meisje", "jongen"))
+    long <- rbind(
+      data.frame(metriek = "AUCtau,ss (ng*h/mL)", xvariabele = "eGFR (mL/min/1.73m2)",
+                 x = m$EGFR, y = m$AUCtau, Geslacht = m$Geslacht),
+      data.frame(metriek = "AUCtau,ss (ng*h/mL)", xvariabele = "Leeftijd (jaren)",
+                 x = m$AGE, y = m$AUCtau, Geslacht = m$Geslacht),
+      data.frame(metriek = "Cmax,ss (ng/mL)", xvariabele = "eGFR (mL/min/1.73m2)",
+                 x = m$EGFR, y = m$Cmax, Geslacht = m$Geslacht),
+      data.frame(metriek = "Cmax,ss (ng/mL)", xvariabele = "Leeftijd (jaren)",
+                 x = m$AGE, y = m$Cmax, Geslacht = m$Geslacht)
+    )
+    ggplot(long, aes(x = x, y = y, color = Geslacht)) +
+      geom_point(alpha = 0.4, size = 1.7) +
+      geom_smooth(method = "loess", formula = y ~ x, se = TRUE, linewidth = 1) +
+      facet_grid(metriek ~ xvariabele, scales = "free") +
+      scale_color_manual(values = c("meisje" = "#E69F00", "jongen" = "#0072B2")) +
+      labs(x = NULL, y = NULL,
+           title = "Steady-state exposure vs nierfunctie (eGFR) en leeftijd",
+           subtitle = "Punten = individuele kinderen; lijn + band = LOESS-trend met 95% CI per panel") +
+      theme_minimal(base_size = 13) +
+      theme(plot.title = element_text(face = "bold"),
+            strip.text = element_text(face = "bold"),
+            legend.position = "bottom")
   })
 
   # ---------- Virtuele populatie ----------

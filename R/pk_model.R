@@ -90,13 +90,13 @@ individual_params <- function(pop, th = nonmem_theta(), egfr = NULL) {
 
 # Monte Carlo simulatie: n_doses doses met interval tau, per kind.
 # IIV: ETA(2) op CL, ETA(3) op V3, optioneel ETA(1) op KA (omega^2 = 8.52 FIX).
-# IOV: per dosing occasion een eigen log-normale multiplier op CL.
+# IOV: per dosing occasion een eigen log-normale multiplier op F1 (toegediende dosis).
 # ODEs worden met RK4 vector-gewijs over alle kinderen gentegreerd.
 simulate_population_pk <- function(pop,
                                    dose_mgkg,
                                    tau = 24,
                                    n_doses = 7,
-                                   iov_cv = 0,
+                                   iov_f1_cv = 0,
                                    ka_bsv = TRUE,
                                    seed = 1,
                                    th = nonmem_theta(),
@@ -120,7 +120,7 @@ simulate_population_pk <- function(pop,
 
   dose_ug <- dose_mgkg * p$BWT * 1000  # mg -> microg
 
-  sigma_iov <- sqrt(log(1 + (iov_cv / 100)^2))
+  sigma_iov <- sqrt(log(1 + (iov_f1_cv / 100)^2))
 
   times <- seq(0, tau, by = out_by)
   n_out <- length(times)
@@ -134,9 +134,9 @@ simulate_population_pk <- function(pop,
   curve_last <- NULL
 
   for (d in seq_len(n_doses)) {
-    A1 <- A1 + dose_ug
-    iov <- if (sigma_iov > 0) exp(rnorm(n, 0, sigma_iov)) else rep(1, n)
-    ke  <- p$CL * iov / p$V2
+    f1 <- if (sigma_iov > 0) exp(rnorm(n, 0, sigma_iov)) else rep(1, n)
+    A1 <- A1 + dose_ug * f1
+    ke  <- p$CL / p$V2
     k12 <- p$Q / p$V2
     k21 <- p$Q / p$V3
     ka  <- p$KA
@@ -193,7 +193,7 @@ simulate_population_pk <- function(pop,
     curve_day1 = curve_first,
     metrics = metrics,
     settings = list(dose_mgkg = dose_mgkg, tau = tau, n_doses = n_doses,
-                    iov_cv = iov_cv, ka_bsv = ka_bsv, seed = seed, n = n,
+                    iov_f1_cv = iov_f1_cv, ka_bsv = ka_bsv, seed = seed, n = n,
                     egfr_source = egfr_info$source)
   )
 }
@@ -205,9 +205,9 @@ curve_summary <- function(curve, times, probs = c(0.05, 0.5, 0.95)) {
 }
 
 # Samenvatting steady-state metrieken: mediaan + P5/P95
-summarize_metrics <- function(metrics) {
+summarize_metrics <- function(metrics, tau = 24) {
   cols <- c("Cmax", "Tmax", "Cmin", "AUCtau", "Cavg")
-  labels <- c("Cmax,ss (ng/mL)", "Tmax (uur)", "Cmin,ss = C24 (ng/mL)",
+  labels <- c("Cmax,ss (ng/mL)", "Tmax (uur)", sprintf("Cmin,ss = C%.0f (ng/mL)", tau),
               "AUCtau,ss (ng*h/mL)", "Cavg,ss (ng/mL)")
   data.frame(
     Metriek = labels,

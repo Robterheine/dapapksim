@@ -9,13 +9,18 @@ De virtuele kinderen worden gegenereerd met het
 
 - **PK-curve bij steady state**: mediaan + 90% predictie-interval (P5–P95) over de
   virtuele populatie, optioneel individuele curves, mediaan van dag 1, log-y-as.
-- **Steady-state metrieken**: Cmax,ss, Tmax, Cmin,ss (= C24), AUCtau,ss en Cavg,ss —
+- **Steady-state metrieken**: Cmax,ss, Tmax, Cmin,ss (= trough C(τ)), AUCtau,ss en Cavg,ss —
   als populatiesamenvatting (mediaan [P5–P95]) én als verdelingen per kind.
 - **Dosis in mg/kg** (schuifje), omgerekend per kind op basis van gewicht.
+- **Dosisinterval (τ)** instelbaar in uren (12–48 h, standaard 24 h).
+- **Tabblad "AUC & Cmax vs nierfunctie / leeftijd"**: 2×2-plot (AUCtau,ss en Cmax,ss
+  vs eGFR en vs leeftijd) met LOESS-trendlijn per panel.
 - **Leeftijdsrange** instelbaar; de virtuele populatie wordt Fermi-gefilterd gegenereerd
   via `copulapop::generate_population(..., age_range = ...)`.
-- **Inter-occasion variabiliteit (IOV)**: schuifje (0–100% CV) dat per dosing occasion
-  een eigen log-normale multiplier op de klaring (CL) legt.
+- **Inter-occasion variabiliteit (IOV) op F1**: schuifje (0–100% CV) dat per dosing
+  occasion een eigen log-normale multiplier op de relatieve biologische beschikbaarheid
+  legt — gemodelleerd voor variabiliteit in toegediende dosis bij kinderen
+  (tablet opgelost en via de sonde toegediend).
 - Keuze uit copulapop datasets (NHANES, HSE, RUMC),
   geslacht, aantal kinderen, aantal doses tot steady state, random seed.
 - Download van curve-samenvatting en per-kind metrieken als CSV.
@@ -63,6 +68,7 @@ mL/min/1.73m² — direct uit de copulapop-kolom `EGFR`, Schwartz <18 j / CKD-EP
 ≥18 j; fallback per leeftijd als de dataset geen creatinine heeft). Maturatie van
 niet-renale CL (UGT1A9) volgens Farhan 2024 (doi:10.1002/jcph.2484). Allometrie op
 alle parameters t.o.v. BWT/84. IIV op KA (ω²=8.52, fixed), CL/F en Vp/F; optionele
-IOV op CL per dosis. Zie `model_doc.md` in de app voor de volledige mapping.
+IOV op F1 (toegediende dosis) per dosis; dosisinterval τ instelbaar.
+Zie `model_doc.md` in de app voor de volledige mapping.
 
 Let op: dit is een educatief/visualisatiemodel — geen gevalideerd doseringsadvies.
