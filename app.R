@@ -57,6 +57,7 @@ ui <- fluidPage(
     mainPanel(
       width = 9,
       uiOutput("error_box"),
+      p("Deze app simuleert de farmacokinetiek van dapagliflozine in een virtuele kinderpopulatie (gegenereerd met copulapop) op basis van het popPK-model van Penland et al. 2023. Stel links dosis (mg/kg), leeftijdsrange en dataset in en klik op ", strong("Simuleer"), ". Zie het tabblad 'Model & assumpties' voor de onderbouwing en bronnen."),
       tabsetPanel(
         id = "tabs",
         tabPanel(

@@ -27,7 +27,7 @@ uitwisseling `Q`). Concentratie = A2/V2.
 | Q | 5 | 9.137 L/h | intercompartimentale klaring; (BWT/84)^0.75 |
 | Renale slope | 6 | 0.177 L/h per mL/min/1.73m² | renale component = slope × EGFR |
 | Sex-effect | 7 | −0.1441 | CL/F × (1 + θ7·(1−SEX)); SEX=1 man, 0 vrouw → vrouwen ~14% lagere CL/F |
-| ALAG1 | 9 | 0.5 h (fixed) | lagtijd depot |
+| ALAG1 | 9 | 0.5 h (fixed) | lagtijd depot; placeholder — niet gerapporteerd in de publicatie |
 | TM50 UGT1A9 | 10 | 0.09 jaar | maturatie (Farhan 2024) |
 | Hill UGT1A9 | 11 | 1.9 | maturatie (Farhan 2024) |
 | Fbirth UGT1A9 | 12 | 0.05 | maturatie (Farhan 2024) |
@@ -76,7 +76,17 @@ maar **alleen voor datasets die creatinine bevatten** (in de app: NHANES, RUMC):
 Bij datasets **zonder creatinine** (in de app: HSE) ontbreekt de EGFR-kolom; de app
 valt dan terug op een geschatte **normale eGFR per 1.73m² per leeftijd**
 (GFR-maturatie: `pmax(30, 120·AGE^1.7/(0.75^1.7 + AGE^1.7))`). De gebruikte bron staat in het
-tabblad "Virtuele populatie".
+tabblad "Virtuele populate".
+
+**Verificatie eenheid (mL/min/1.73m²):** copulapop berekent EGFR op exact één plek —
+`calculate_egfr()` in `R/generate.R`, aangeroepen door zowel `generate_population()` als
+`generate_population_from_copula()`: CKD-EPI 2021 race-free (≥18 j) en bedside Schwartz
+`0.413 × lengte(cm) / Scr(mg/dL)` (<18 j). Beide formules zijn **per definitie genormaliseerd
+per 1.73 m²** (mL/min/1.73m²) — dit staat ook in de copulapop-README ("EGFR … mL/min/1.73m²").
+De app gebruikt `pop$EGFR` **direct** in `THETA(6)·EGFR` (0.177 L/h per mL/min/1.73m²) en doet
+**nooit** een BSA-conversie naar absoluut GFR (mL/min). De fallback is eveneens per 1.73m².
+Als permanente guard checkt `egfr_from_copula()` dat alle EGFR-waarden in het plausibele
+bereik 5–300 mL/min/1.73m² liggen; het resultaat staat in het tabblad "Virtuele populate".
 
 ## Covariaten uit de virtuele populatie
 
@@ -92,6 +102,23 @@ Na `n_doses` doses geldt het laatste interval als steady state. Per kind: **Cmax
 **Tmax**, **Cmin,ss (= C(τ))**, **AUCtau,ss** (trapeziumregel 0–τ), **Cavg,ss = AUCtau/τ**.
 In het tabblad "AUC & Cmax vs nierfunctie / leeftijd" worden AUCtau,ss en Cmax,ss
 geplot vs eGFR en vs leeftijd met een LOESS-trendlijn.
+
+## Verschillen t.o.v. het bronmodel (Penland 2023) — en waarom
+
+- **eGFR-vergelijking**: het artikel gebruikte CKD-EPI **2009**; copulapop gebruikt CKD-EPI
+  **2021** (≥18 j) en bedside Schwartz (<18 j). Het artikel rapporteert dat de overstap
+  2009→2021 "minimal impact" had op de parameterschattingen.
+- **eGFR-effect op CL**: in het artikel een machtsfunctie `(eGFR/eGFR_REF)^0.6374`; hier de
+  lineaire split `CL = 5.44 + 0.177·eGFR` (afgeleid uit Tabel S4, R² = 0.9985 — zie
+  `docs/HANDOVER_renale_CL_UGT1A9_maturatie.md`). Gevalideerd in `VALIDATION.md`
+  (AUC-ratio's per eGFR-stratum iets vlakker dan in het artikel).
+- **Identificeerbaarheid maturatie**: de pediatrische brondata betroffen 11–17 jaar (MAT = 1
+  voor alle subjecten), dus THETA 10–12 zijn **gefixeerd uit de literatuur** (Farhan 2024),
+  niet schatbaar uit de data; het maturatie-effect is alleen zichtbaar bij extrapolatie < ~2 jaar.
+- **IOV op F1** is een extensie t.o.v. het NONMEM-model. De getoonde steady-state curve is het
+  **laatste doseringsinterval** en reflecteert per kind één F1-trekking; de 90% band bevat
+  daarmee óók de occasion-to-occasion spreiding van die laatste dosis.
+- **ALAG1 = 0.5 h** is een placeholder (lagtijd niet gepubliceerd in het artikel).
 
 ## Verificatie tegen Penland et al. 2023 (doi:10.1002/jcph.2196)
 
