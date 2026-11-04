@@ -31,7 +31,7 @@ ui <- fluidPage(
       actionButton("run", "Simuleer", icon = icon("play"), class = "btn-primary btn-lg", width = "100%"),
       hr(),
       sliderInput("dose_mgkg", "Dosis (mg/kg)", min = 0.02, max = 0.5, value = 0.15, step = 0.01),
-      sliderInput("tau", "Dosisinterval (uur) tussen twee doses", min = 0, max = 12, value = 12, step = 1),
+      sliderInput("tau", "Dosisinterval (uur) tussen twee doses", min = 0, max = 24, value = 24, step = 1),
       sliderInput("n_doses", "Aantal doses tot steady state", min = 3, max = 14, value = 7, step = 1),
       sliderInput("iov_cv", "Inter-occasion variabiliteit op F1 / toegediende dosis (%CV per dosis)", min = 0, max = 100, value = 0, step = 5),
       sliderInput("age_range", "Leeftijdsrange (jaren)", min = 0, max = 18, value = c(10, 17), step = 0.5),

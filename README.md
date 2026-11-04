@@ -18,7 +18,7 @@ De virtuele kinderen worden gegenereerd met het
 - **Steady-state metrieken**: Cmax,ss, Tmax, Cmin,ss (= trough C(τ)), AUCtau,ss en Cavg,ss —
   als populatiesamenvatting (mediaan [P5–P95]) én als verdelingen per kind.
 - **Dosis in mg/kg** (schuifje), omgerekend per kind op basis van gewicht.
-- **Dosisinterval (τ)** instelbaar in uren (0–12 h, stap 1 h, standaard 12 h; τ = 0 geeft
+- **Dosisinterval (τ)** instelbaar in uren (0–24 h, stap 1 h, standaard 24 h; τ = 0 geeft
   een foutmelding).
 - **Tabblad "AUC & Cmax vs nierfunctie / leeftijd"**: 2×2-plot (AUCtau,ss en Cmax,ss
   vs eGFR en vs leeftijd) met LOESS-trendlijn per panel.
