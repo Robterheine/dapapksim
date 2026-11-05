@@ -346,6 +346,14 @@ hr { border: none; border-top: 0.6pt solid #ccc; margin: 10pt 0; }
 </tbody></table>
 <p>At a fixed 10 mg, the age effect on AUC (12–18 y / adult) is 1.02× in this model (BSA-scaled)</p>
 <p>vs 1.34× (S1) / 1.48× (S2) in the PBPK paper — the BSA scaling largely closes this gap.</p>
+<p><b>Maturation-function option (added to the app):</b> next to the default Farhan et al.</p>
+<p>2024 function, the app now also offers <b>Badee et al. 2019 via Jo et al. 2021 scenario 2</b></p>
+<p>(doi:10.1002/psp4.12577; sigmoidal Eq. 1 for age ≤ 1 y with AdultMax 1.305, Fbirth 0,</p>
+<p>Age50 0.086 y, n 1.1, then exponential Eq. 2 C0 + C1·exp(C2·(Age−C3)) for 1–20 y;</p>
+<p>normalised to AdultMax = 1). AUC ratios with the Badee option vs PBPK scenario 1/2:</p>
+<p>12–18 y 0.97/0.88, 6–12 y 0.69/0.83, 2–6 y 0.55/0.50, &lt;2 y 0.37–0.59 — i.e. very close to</p>
+<p>the Farhan default (both are fast-maturing in-vivo/literature functions), with Badee</p>
+<p>marginally closer to PBPK scenario 2 at 3 months–12 y.</p>
 <figure>
 
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="580" viewBox="0 0 1200 580" font-family="Helvetica, Arial, sans-serif">

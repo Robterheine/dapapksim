@@ -15,6 +15,11 @@ library(copulapop)
 
 for (f in list.files("R", pattern = "\\.R$", full.names = TRUE)) source(f)
 
+mat_choices <- c(
+  "Farhan et al. 2024 — doi:10.1002/jcph.2484 (in-vivo UGT1A9, Hill)" = "farhan2024",
+  "Badee et al. 2019 via Jo et al. 2021 scenario 2 — doi:10.1002/psp4.12577 (sigmoidaal + exponentieel)" = "badee2019"
+)
+
 datasets <- c(
   "NHANES (USA, algemene bevolking)" = "NHANES",
   "HSE (Engeland, algemene bevolking)" = "HSE",
@@ -36,6 +41,7 @@ ui <- fluidPage(
       sliderInput("iov_cv", "Inter-occasion variabiliteit op F1 / toegediende dosis (%CV per dosis)", min = 0, max = 100, value = 0, step = 5),
       sliderInput("age_range", "Leeftijdsrange (jaren)", min = 0, max = 18, value = c(0, 5), step = 0.5),
       selectInput("dataset", "Virtuele populatie (copulapop dataset)", choices = datasets, selected = "RUMC"),
+      selectInput("mat_option", "Maturatiefunctie op niet-renale CL (UGT1A9)", choices = mat_choices, selected = "farhan2024"),
       selectInput("sex", "Geslacht", choices = c("Beide" = "both", "Jongen" = "male", "Meisje" = "female")),
       sliderInput("n_subj", "Aantal kinderen (N)", min = 50, max = 2000, value = 1000, step = 50),
       numericInput("seed", "Random seed", value = 42, min = 1),
@@ -142,6 +148,7 @@ server <- function(input, output, session) {
       withProgress(message = "Monte Carlo PK-simulatie ...", value = 0.6, {
         res <- simulate_population_pk(pop, dose_mgkg = vals$dose_mgkg, tau = vals$tau,
                                       n_doses = vals$n_doses, iov_f1_cv = vals$iov_cv,
+                                      mat_option = vals$mat_option,
                                       seed = as.integer((as.numeric(seed) + 1000) %% 2147483647))
       })
       sim_res(list(pop = pop, res = res))
@@ -212,8 +219,8 @@ server <- function(input, output, session) {
         y = "Dapagliflozine in plasma (ng/mL)",
         title = sprintf("Steady-state concentratie-tijdcurve (dosisinterval %g h)", st$tau),
         subtitle = sprintf(
-          "Mediaan + 90%% predictie-interval (P5-P95), N = %d, dosis %.2f mg/kg, interval %g h, %d doses, IOV op F1 %d%% CV, leeftijd %.1f-%.1f jaar",
-          st$n, st$dose_mgkg, st$tau, st$n_doses, st$iov_f1_cv, min(s$pop$AGE), max(s$pop$AGE)
+          "Mediaan + 90%% predictie-interval (P5-P95), N = %d, dosis %.2f mg/kg, interval %g h, %d doses, IOV op F1 %d%% CV, leeftijd %.1f-%.1f jaar, maturatie: %s",
+          st$n, st$dose_mgkg, st$tau, st$n_doses, st$iov_f1_cv, min(s$pop$AGE), max(s$pop$AGE), st$mat_label
         )
       ))
     if (isTRUE(show_indiv)) {

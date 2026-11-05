@@ -33,6 +33,28 @@ nonmem_theta <- function() {
   )
 }
 
+# Maturatiefuncties voor de niet-renale klaring (UGT1A9), te kiezen in de app.
+# Beide genormaliseerd op AdultMax = 1 (adult-CLnr is het referentiepunt).
+maturation_functions <- function() {
+  list(
+    farhan2024 = list(
+      label = "Farhan et al. 2024 - doi:10.1002/jcph.2484 (in-vivo UGT1A9, Hill)",
+      fun = function(age, th) {
+        th$fbirth + (1 - th$fbirth) * age^th$hill / (th$tm50^th$hill + age^th$hill)
+      }
+    ),
+    badee2019 = list(
+      label = "Badee et al. 2019 via Jo et al. 2021 scenario 2 - doi:10.1002/psp4.12577 (sigmoidaal <=1 j + exponentieel 1-20 j)",
+      fun = function(age, th = NULL) {
+        sig <- function(a) 1.305 * a^1.1 / (0.086^1.1 + a^1.1)          # Fbirth=0, Age50=0.086, n=1.1, cap 1 j
+        expf <- function(a) 1.243 - 0.833 * exp(0.2 * (a - 25))          # C0=1.243, C1=-0.833, C2=0.2, C3=25, cap 20 j
+        f <- ifelse(age <= 1, sig(pmax(age, 0)), ifelse(age <= 20, expf(age), 1.305))
+        f / 1.305                                                        # genormaliseerd op AdultMax: MAT(volwassen) = 1
+      }
+    )
+  )
+}
+
 nonmem_omega <- function() {
   list(
     ka = 8.52,   # BSV op KA, FIX in publicatie (ETA(1))
@@ -74,7 +96,7 @@ egfr_from_copula <- function(pop) {
 }
 
 # Individuele parameters uit de virtuele populatie (covariaten + allometrie)
-individual_params <- function(pop, th = nonmem_theta(), egfr = NULL) {
+individual_params <- function(pop, th = nonmem_theta(), egfr = NULL, mat_option = "farhan2024") {
   n <- nrow(pop)
   bwt <- pop$WEIGHT          # BWT in kg
   age <- pop$AGE             # AGE in jaar
@@ -82,7 +104,7 @@ individual_params <- function(pop, th = nonmem_theta(), egfr = NULL) {
   if (is.null(egfr)) egfr <- egfr_from_copula(pop)$egfr  # mL/min/1.73m2
 
   w   <- bwt / 84
-  mat <- th$fbirth + (1 - th$fbirth) * age^th$hill / (th$tm50^th$hill + age^th$hill)
+  mat <- maturation_functions()[[mat_option]]$fun(age, th)
 
   clnr <- th$clnr * mat * w^0.75
   bsa  <- if ("BSA" %in% names(pop)) pop$BSA else rep(th$bsa_ref, n)
@@ -106,6 +128,7 @@ simulate_population_pk <- function(pop,
                                    n_doses = 7,
                                    iov_f1_cv = 0,
                                    ka_bsv = TRUE,
+                                   mat_option = "farhan2024",
                                    seed = 1,
                                    th = nonmem_theta(),
                                    om = nonmem_omega(),
@@ -115,7 +138,7 @@ simulate_population_pk <- function(pop,
   set.seed(seed)
   n <- nrow(pop)
   egfr_info <- egfr_from_copula(pop)
-  p <- individual_params(pop, th, egfr = egfr_info$egfr)
+  p <- individual_params(pop, th, egfr = egfr_info$egfr, mat_option = mat_option)
 
   # inter-individuele variabiliteit (log-normaal, exp(ETA))
   p$CL <- p$CL * exp(rnorm(n, 0, sqrt(om$cl)))
@@ -204,6 +227,7 @@ simulate_population_pk <- function(pop,
     metrics = metrics,
     settings = list(dose_mgkg = dose_mgkg, tau = tau, n_doses = n_doses,
                     iov_f1_cv = iov_f1_cv, ka_bsv = ka_bsv, seed = seed, n = n,
+                    mat_option = mat_option, mat_label = maturation_functions()[[mat_option]]$label,
                     egfr_source = egfr_info$source, egfr_unit_note = egfr_info$unit_note)
   )
 }

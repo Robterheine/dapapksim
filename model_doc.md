@@ -62,6 +62,31 @@ V2   = 73.47 * (BWT/84);  V3 = 168.5 * (BWT/84);  Q = 9.137 * (BWT/84)^0.75
   (ω² = 8.52) te voorkomen, wordt individuele KA geclamped op [0.05, 25] h⁻¹; dit treft
   alleen de extreme staart waar absorptie nagenoeg momentaan is.
 
+## Maturatiefunctie op niet-renale CL — twee opties (keuze in de app)
+
+De app biedt in de sidebar een keuze ("Maturatiefunctie op niet-renale CL (UGT1A9)"),
+benoemd naar eerste auteur + referentie. Beide functies zijn genormaliseerd op
+AdultMax = 1 (adult-CLnr is het referentiepunt) en werken alleen op de niet-renale
+component: `CLnr = 5.44 · MAT(AGE) · (BWT/84)^0.75`.
+
+1. **Farhan et al. 2024 — doi:10.1002/jcph.2484** (in-vivo UGT1A9 via propofol-CL; Hill;
+   Fbirth = 0.05, Age50 = 0.09 jaar, n = 1.9; AdultMax 1.1 genormaliseerd naar 1).
+   `MAT = 0.05 + 0.95·AGE^1.9/(0.09^1.9 + AGE^1.9)`. Snel: ~volwassen binnen ~1 jaar.
+   Dit is de **standaard** (huidige gedrag).
+2. **Badee et al. 2019 via Jo et al. 2021 (PBPK) scenario 2 — doi:10.1002/psp4.12577**
+   (Tabel 1 van Jo 2021): sigmoidaal (Eq. 1) voor leeftijd ≤ 1 jaar met AdultMax = 1.305,
+   Fbirth = 0, Age50 = 0.086 jaar, n = 1.1; daarboven exponentiële functie (Eq. 2)
+   `C0 + C1·exp(C2·(Age − C3))` met C0 = 1.243, C1 = −0.833, C2 = 0.2, C3 = 25 voor
+   1 < leeftijd ≤ 20 jaar; daarboven AdultMax. Genormaliseerd op AdultMax.
+   Snelle vroege maturatie (≈ 0.8 van volwassen op ~4 maanden), iets langzamer plateau
+   dan Farhan in de schoolleeftijd.
+
+Kies Farhan 2024 als default (in-vivo data, beste PBPK-voorspelaccuracy volgens Farhan);
+kies Badee 2019/Jo-scenario-2 als je de PBPK-scenario-2-voorspellingen van Jo 2021 wilt
+reproduceren. Identificeerbaarheid: de pediatrische brondata (11–17 j) hebben MAT = 1,
+dus de maturatieparameters zijn gefixeerd uit de literatuur en alleen relevant bij
+extrapolatie < ~2 jaar.
+
 ## Nierfunctie (eGFR) en absoluut GFR
 
 **Twee verwante maar verschillende grootheden:**

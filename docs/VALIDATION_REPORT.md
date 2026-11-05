@@ -161,6 +161,15 @@ patient of that age (median weight; age-based eGFR).
 At a fixed 10 mg, the age effect on AUC (12–18 y / adult) is 1.02× in this model (BSA-scaled)
 vs 1.34× (S1) / 1.48× (S2) in the PBPK paper — the BSA scaling largely closes this gap.
 
+**Maturation-function option (added to the app):** next to the default Farhan et al.
+2024 function, the app now also offers **Badee et al. 2019 via Jo et al. 2021 scenario 2**
+(doi:10.1002/psp4.12577; sigmoidal Eq. 1 for age ≤ 1 y with AdultMax 1.305, Fbirth 0,
+Age50 0.086 y, n 1.1, then exponential Eq. 2 C0 + C1·exp(C2·(Age−C3)) for 1–20 y;
+normalised to AdultMax = 1). AUC ratios with the Badee option vs PBPK scenario 1/2:
+12–18 y 0.97/0.88, 6–12 y 0.69/0.83, 2–6 y 0.55/0.50, <2 y 0.37–0.59 — i.e. very close to
+the Farhan default (both are fast-maturing in-vivo/literature functions), with Badee
+marginally closer to PBPK scenario 2 at 3 months–12 y.
+
 ![Figure 3](../figures/fig3_pbpk_age.svg)
 
 *Figure 3. PBPK predictions per age group (scenario 1 black, scenario 2 grey) vs this
