@@ -24,7 +24,7 @@ nonmem_theta <- function() {
     v3     = 168.5,   # THETA(4)  Vp/F (L) bij BWT=84
     q      = 9.137,   # THETA(5)  Q/F (L/h) bij BWT=84
     egfr_s = 0.177,   # THETA(6)  renale slope (L/h per mL/min/1.73m2)
-    sex    = -0.1441, # THETA(7)  CL/F factor = (1 + sex*(1-SEX)); SEX=1 man, 0 vrouw
+    sex    = -0.1441, # THETA(7) - niet toegepast in dit model (allometrie op BWT dekt dit; zie model_doc.md)
     alag   = 0.5,     # THETA(9)  ALAG1 (h), fixed
     tm50   = 0.09,    # THETA(10) UGT1A9 maturatie TM50 (jaar), Farhan 2024 Table 1
     hill   = 1.9,     # THETA(11) UGT1A9 maturatie Hill-coeff, Farhan 2024
@@ -83,7 +83,7 @@ individual_params <- function(pop, th = nonmem_theta(), egfr = NULL) {
   mat <- th$fbirth + (1 - th$fbirth) * age^th$hill / (th$tm50^th$hill + age^th$hill)
 
   clnr <- th$clnr * mat * w^0.75
-  cl   <- (clnr + th$egfr_s * egfr) * (1 + th$sex * (1 - sex))
+  cl   <- clnr + th$egfr_s * egfr
   ka   <- th$ka * w^(-0.25)
   v2   <- th$v2 * w
   v3   <- th$v3 * w
@@ -216,9 +216,14 @@ summarize_metrics <- function(metrics, tau = 24) {
   cols <- c("Cmax", "Tmax", "Cmin", "AUCtau", "Cavg")
   labels <- c("Cmax,ss (ng/mL)", "Tmax (uur)", sprintf("Cmin,ss = C%.0f (ng/mL)", tau),
               "AUCtau,ss (ng*h/mL)", "Cavg,ss (ng/mL)")
+  geomean <- function(x) {
+    x <- x[!is.na(x)]
+    if (length(x) > 0 && all(x > 0)) exp(mean(log(x))) else NA_real_
+  }
   data.frame(
     Metriek = labels,
     Mediaan = sapply(metrics[cols], median),
+    `Geom. gem.` = sapply(metrics[cols], geomean),
     P5  = sapply(metrics[cols], function(x) quantile(x, 0.05, names = FALSE)),
     P95 = sapply(metrics[cols], function(x) quantile(x, 0.95, names = FALSE))
   )

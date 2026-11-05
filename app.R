@@ -38,6 +38,7 @@ ui <- fluidPage(
       selectInput("dataset", "Virtuele populatie (copulapop dataset)", choices = datasets, selected = "RUMC"),
       selectInput("sex", "Geslacht", choices = c("Beide" = "both", "Jongen" = "male", "Meisje" = "female")),
       sliderInput("n_subj", "Aantal kinderen (N)", min = 50, max = 2000, value = 1000, step = 50),
+      numericInput("seed", "Random seed", value = 42, min = 1),
       hr(),
       h4("Weergave"),
       checkboxInput("show_indiv", "Toon individuele curves (max. 30)", value = FALSE),
@@ -129,7 +130,8 @@ server <- function(input, output, session) {
   do_simulate <- function() {
     err_msg(NULL)
     vals <- isolate(reactiveValuesToList(input))
-    seed <- as.integer(as.numeric(Sys.time()) %% 2147483647)
+    seed <- suppressWarnings(as.integer(vals$seed))
+    if (is.na(seed)) stop("Random seed moet een geheel getal zijn.")
     tryCatch({
       if (is.null(vals$dose_mgkg) || is.na(vals$dose_mgkg) || vals$dose_mgkg <= 0)
         stop("Dosis per gift (mg/kg) moet een positief getal zijn.")

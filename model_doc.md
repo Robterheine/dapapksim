@@ -26,7 +26,7 @@ uitwisseling `Q`). Concentratie = A2/V2.
 | V3 | 4 | 168.5 L | perifeer volume bij BWT=84; lineair in BWT/84 |
 | Q | 5 | 9.137 L/h | intercompartimentale klaring; (BWT/84)^0.75 |
 | Renale slope | 6 | 0.177 L/h per mL/min/1.73m² | renale component = slope × EGFR |
-| Sex-effect | 7 | −0.1441 | CL/F × (1 + θ7·(1−SEX)); SEX=1 man, 0 vrouw → vrouwen ~14% lagere CL/F |
+| Sex-effect | 7 | −0.1441 | **niet toegepast** — verwijderd omdat allometrie op BWT dit effect dekt (zie "Verschillen t.o.v. bronmodel") |
 | ALAG1 | 9 | 0.5 h (fixed) | lagtijd depot; placeholder — niet gerapporteerd in de publicatie |
 | TM50 UGT1A9 | 10 | 0.09 jaar | maturatie (Farhan 2024) |
 | Hill UGT1A9 | 11 | 1.9 | maturatie (Farhan 2024) |
@@ -37,7 +37,7 @@ Individuele parameters:
 ```
 MAT  = 0.05 + 0.95 * AGE^1.9 / (0.09^1.9 + AGE^1.9)
 CLnr = 5.44 * MAT * (BWT/84)^0.75
-CL   = (CLnr + 0.177*EGFR) * (1 - 0.1441*(1-SEX))
+CL   = CLnr + 0.177*EGFR
 KA   = 2.833 * (BWT/84)^(-0.25)
 V2   = 73.47 * (BWT/84);  V3 = 168.5 * (BWT/84);  Q = 9.137 * (BWT/84)^0.75
 ```
@@ -92,14 +92,14 @@ bereik 5–300 mL/min/1.73m² liggen; het resultaat staat in het tabblad "Virtue
 
 - **BWT** = `WEIGHT` (kg) — allometrische referent 84 kg.
 - **AGE** = `AGE` (jaar) — maturatie van niet-renale CL.
-- **SEX** = `SEXISMALE` (1 = jongen, 0 = meisje) — past bij de NONMEM-codering.
+- **SEX** = `SEXISMALE` (1 = jongen, 0 = meisje) — alleen gebruikt in de eGFR-formules (via copulapop); niet meer in CL.
 - **EGFR** = `EGFR` (mL/min/1.73m²) — zie boven.
 
 ## Steady state & metrieken
 
-Dosis per gift = mg/kg × BWT (dit is de **keerdosis per toediening**, geen dagdosis); dosisinterval τ instelbaar in de app (0–24 h, stap 1 h, standaard 24 h; τ = 0 wordt afgevangen met een foutmelding). De random seed wordt per run gegenereerd uit datum/tijd.
+Dosis per gift = mg/kg × BWT (dit is de **keerdosis per toediening**, geen dagdosis); dosisinterval τ instelbaar in de app (0–24 h, stap 1 h, standaard 24 h; τ = 0 wordt afgevangen met een foutmelding). Random seed instelbaar in de app (standaard 42).
 Na `n_doses` doses geldt het laatste interval als steady state. Per kind: **Cmax,ss**,
-**Tmax**, **Cmin,ss (= C(τ))**, **AUCtau,ss** (trapeziumregel 0–τ), **Cavg,ss = AUCtau/τ**.
+**Tmax**, **Cmin,ss (= C(τ))**, **AUCtau,ss** (trapeziumregel 0–τ), **Cavg,ss = AUCtau/τ**. In de app-tabel per metriek ook het **geometrisch gemiddelde** (naast mediaan en P5–P95).
 In het tabblad "AUC & Cmax vs nierfunctie / leeftijd" worden AUCtau,ss en Cmax,ss
 geplot vs eGFR en vs leeftijd met een LOESS-trendlijn.
 
@@ -133,6 +133,7 @@ geplot vs eGFR en vs leeftijd met een LOESS-trendlijn.
 - **IOV op F1** is een extensie t.o.v. het NONMEM-model. De getoonde steady-state curve is het
   **laatste doseringsinterval** en reflecteert per kind één F1-trekking; de 90% band bevat
   daarmee óók de occasion-to-occasion spreiding van die laatste dosis.
+- **Sex-effect op CL/F (THETA(7) = −0.1441) verwijderd**: in het bronmodel correleerde dit met lichaamsgrootte; nu alle parameters allometrisch geschaald worden op (BWT/84), is dat effect niet meer nodig. Het effect was klein (~1.0–1.17× AUC) en volgens het artikel niet klinisch relevant.
 - **ALAG1 = 0.5 h** is een placeholder (lagtijd niet gepubliceerd in het artikel).
 
 ## Verificatie tegen Penland et al. 2023 (doi:10.1002/jcph.2196)

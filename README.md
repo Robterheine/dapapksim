@@ -17,7 +17,7 @@ De virtuele kinderen worden gegenereerd met het
   breedte/hoogte (inch) en resolutie (dpi, raster) — inclusief de gemeten overlay.
   De export gebruikt **Engelstalige as- en titelteksten** (het scherm blijft Nederlands).
 - **Steady-state metrieken**: Cmax,ss, Tmax, Cmin,ss (= trough C(τ)), AUCtau,ss en Cavg,ss —
-  als populatiesamenvatting (mediaan [P5–P95]) én als verdelingen per kind.
+  als populatiesamenvatting (mediaan, geometrisch gemiddelde en [P5–P95]) én als verdelingen per kind.
 - **Dosis per gift in mg/kg** (invoerveld) — dit is de **keerdosis per toediening**, niet de dagdosis (dagdosis = keerdosis × 24/τ); omgerekend per kind op basis van gewicht.
 - **Dosisinterval (τ)** instelbaar in uren (0–24 h, stap 1 h, standaard 24 h; τ = 0 geeft
   een foutmelding).
@@ -31,8 +31,7 @@ De virtuele kinderen worden gegenereerd met het
   (tablet opgelost en via de sonde toegediend).
 - Keuze uit copulapop datasets (NHANES, HSE, RUMC; standaard **RUMC** — Nederlandse
   ziekenhuispopulatie met creatinine/eGFR),
-  geslacht, aantal kinderen, aantal doses tot steady state. De random seed wordt
-  automatisch gegenereerd uit de huidige datum/tijd (elke run is dus anders).
+  geslacht, aantal kinderen, aantal doses tot steady state, random seed (standaard 42).
 - Download van curve-samenvatting en per-kind metrieken als CSV.
 
 ## Installatie
@@ -78,7 +77,7 @@ mL/min/1.73m² — direct uit de copulapop-kolom `EGFR`, Schwartz <18 j / CKD-EP
 ≥18 j; fallback per leeftijd als de dataset geen creatinine heeft). Maturatie van
 niet-renale CL (UGT1A9) volgens Farhan 2024 (doi:10.1002/jcph.2484). Allometrie op
 alle parameters t.o.v. BWT/84. IIV op KA (ω²=8.52, fixed), CL/F en Vp/F; optionele
-IOV op F1 (toegediende dosis) per dosis; dosisinterval τ instelbaar.
+IOV op F1 (toegediende dosis) per dosis; dosisinterval τ instelbaar; sex-effect op CL/F verwijderd (allometrie op BWT dekt dit).
 Zie `model_doc.md` in de app voor de volledige mapping.
 
 Let op: dit is een educatief/visualisatiemodel — geen gevalideerd doseringsadvies.

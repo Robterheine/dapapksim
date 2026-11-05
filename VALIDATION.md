@@ -65,6 +65,7 @@ PK oplevert als gerapporteerd in het bronartikel.
 - **Gewichtseffect op AUC kleiner** (1,06× bij 60 vs 85 kg vs 1,2× in artikel): in het artikel
   staat BWT alleen op Vc/F; hier (bewuste aanpassing) allometrie `(BWT/84)^0.75` op CLnr.
 - **Geslachtseffect 1,17×** (θ7 = −0,1441) vs ~1,0× in het artikel — beide niet klinisch relevant.
+- NB: in de huidige app-versie is het sex-effect op CL/F **verwijderd** (allometrie op BWT dekt dit; zie `model_doc.md`) — het effect was niet klinisch relevant.
 - Cmax, CL/F en AUC komen binnen enkele procenten overeen.
 
 ## 6. Conclusie
