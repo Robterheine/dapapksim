@@ -231,7 +231,10 @@ half-life.***
 The first validation round showed lower AUC than the PBPK predictions (Jo 2021) in
 young children. Cause: the renal clearance term used eGFR per 1.73 m² directly (as in
 the source NONMEM model), whereas **absolute** renal clearance scales with body surface
-area — small children have low BSA and therefore lower absolute renal clearance. Fix
+area — small children have low BSA and therefore lower absolute renal clearance.
+Note the distinction used throughout: eGFR (mL/min/1.73 m², as delivered by copulapop and
+as expected by the NONMEM covariate) is never converted to absolute GFR (mL/min
+= eGFR × BSA/1.73); only the renal clearance term is scaled by BSA/BSA_ref. Fix
 (implemented in `R/pk_model.R`): assume the source population had BSA_ref = 2 m²
 (Penland median 84 kg ≈ 2.0 m²) and scale the renal term relatively:
 `CL_renal = 0.177·eGFR·(BSA/2)` (BSA from copulapop, Mosteller). This keeps the model

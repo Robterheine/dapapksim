@@ -366,6 +366,7 @@ server <- function(input, output, session) {
               median(s$res$metrics$EGFR), min(s$res$metrics$EGFR), max(s$res$metrics$EGFR)),
       sprintf("eGFR-bron: %s", s$res$settings$egfr_source),
       sprintf("eGFR-eenheid: mL/min/1.73m2 — %s", s$res$settings$egfr_unit_note),
+      "Renale CL geschaald met BSA/2 (BSA_ref = 2 m2; absoluut GFR = eGFR x BSA/1.73 wordt NIET als covariaat gebruikt) — zie tabblad Model & assumpties",
       if (!is.null(info)) sprintf("Dataset bevat creatinine: %s",
                                   if (isTRUE(info$has_creatinine)) "ja" else "nee") else "", 
       sprintf("Geslacht: %d%% jongen", round(100 * mean(pop$SEXISMALE)))

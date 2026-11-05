@@ -62,31 +62,43 @@ V2   = 73.47 * (BWT/84);  V3 = 168.5 * (BWT/84);  Q = 9.137 * (BWT/84)^0.75
   (ω² = 8.52) te voorkomen, wordt individuele KA geclamped op [0.05, 25] h⁻¹; dit treft
   alleen de extreme staart waar absorptie nagenoeg momentaan is.
 
-## Nierfunctie (EGFR) uit de copulapop-populatie — in mL/min/1.73m²
+## Nierfunctie (eGFR) en absoluut GFR
 
-Het NONMEM covariaat is **eGFR in mL/min/1.73m²** (renale slope in L/h per mL/min/1.73m²),
-de renale component wordt **wel** geschaald met BSA/BSA_ref (BSA_ref = 2 m², aanname bronpopulatie): CL_renaal = 0.177 × EGFR × (BSA/2). De eGFR zelf blijft per 1.73m²; alleen de renale klaring schaalt met BSA, omdat absolute renale klaring met lichaamsoppervlak schaalt (in kleine kinderen is de absolute renale klaring dus lager dan eGFR-per-1.73m² alleen zou suggereren).
+**Twee verwante maar verschillende grootheden:**
 
-`copulapop::generate_population()` berekent zelf een kolom `EGFR` in exact deze eenheid,
-maar **alleen voor datasets die creatinine bevatten** (in de app: NHANES, RUMC):
+- **eGFR (mL/min/1.73m²)** — genormaliseerd per 1.73 m². Dit is wat het NONMEM-covariaat
+  verwacht (THETA(6) in L/h per mL/min/1.73m²) en wat copulapop levert (kolom `EGFR`).
+- **Absoluut GFR (mL/min)** = eGFR × BSA/1.73. Wordt in dit model **niet** als covariaat
+  gebruikt; wél impliciet in de schaling van de renale klaring (zie onder).
 
-- **< 18 jaar**: bedside Schwartz — `eGFR = 0.413 × lengte(cm) / Scr(mg/dL)`
-- **≥ 18 jaar**: CKD-EPI 2021 (race-free)
+**Wat copulapop genereert** (alleen bij datasets mét creatinine — in de app: NHANES, RUMC):
 
-Bij datasets **zonder creatinine** (in de app: HSE) ontbreekt de EGFR-kolom; de app
-valt dan terug op een geschatte **normale eGFR per 1.73m² per leeftijd**
-(GFR-maturatie: `pmax(30, 120·AGE^1.7/(0.75^1.7 + AGE^1.7))`). De gebruikte bron staat in het
-tabblad "Virtuele populate".
+- < 18 jaar: bedside Schwartz — `eGFR = 0.413 × lengte(cm) / Scr(mg/dL)`
+- ≥ 18 jaar: CKD-EPI 2021 (race-free)
 
-**Verificatie eenheid (mL/min/1.73m²):** copulapop berekent EGFR op exact één plek —
-`calculate_egfr()` in `R/generate.R`, aangeroepen door zowel `generate_population()` als
-`generate_population_from_copula()`: CKD-EPI 2021 race-free (≥18 j) en bedside Schwartz
-`0.413 × lengte(cm) / Scr(mg/dL)` (<18 j). Beide formules zijn **per definitie genormaliseerd
-per 1.73 m²** (mL/min/1.73m²) — dit staat ook in de copulapop-README ("EGFR … mL/min/1.73m²").
-De app gebruikt `pop$EGFR` **direct** in `THETA(6)·EGFR` (0.177 L/h per mL/min/1.73m²) en doet
-de eGFR zelf wordt **nooit** omgerekend naar absoluut GFR (mL/min); alleen de renale component van CL schaalt aanvullend met BSA/2. De fallback-eGFR is eveneens per 1.73m².
-Als permanente guard checkt `egfr_from_copula()` dat alle EGFR-waarden in het plausibele
-bereik 5–300 mL/min/1.73m² liggen; het resultaat staat in het tabblad "Virtuele populate".
+Beide formules zijn per definitie genormaliseerd per 1.73 m² (staat ook in de copulapop-
+README). De app gebruikt `pop$EGFR` **direct** in `THETA(6)·EGFR`; de eGFR zelf wordt
+nooit omgerekend naar absoluut GFR (mL/min). Bij datasets zonder creatinine (HSE) is er
+gheen EGFR-kolom: fallback = geschatte normale eGFR per 1.73m² per leeftijd
+(`pmax(30, 120·AGE^1.7/(0.75^1.7 + AGE^1.7))`). Bron en sanity-check staan in het tabblad
+"Virtuele populate".
+
+**Renale component van CL — geschaald met BSA (BSA_ref = 2 m²):**
+
+```
+CL_ren = 0.177 × EGFR × (BSA / 2)      # = 0.177 × (absoluut GFR) × 1.73/2
+```
+
+Aanname: in de bronpopulatie (Penland 2023) was BSA ≈ 2 m² (mediaan 84 kg). Omdat
+**absolute renale klaring met BSA schaalt**, is in kleine kinderen (laag BSA) de renale
+klaring lager dan eGFR-per-1.73m² alleen suggereert. Zonder deze schaling was de
+blootstelling bij jonge kinderen te laag vs de PBPK-bron (Jo 2021) — zie
+`docs/VALIDATION_REPORT.md` §3.3/§4.3. Bij volwassenen (BSA ≈ 2 m²) is de factor ≈ 1, dus
+het anker CL(90) = 21.6 L/h blijft valide.
+
+**Guard (eenheid mL/min/1.73m²):** `egfr_from_copula()` checkt dat alle EGFR-waarden in het
+plausibele bereik 5–300 mL/min/1.73m² liggen; het resultaat staat in het tabblad
+"Virtuele populate" ("eGFR-eenheid: … sanity-check OK").
 
 ## Covariaten uit de virtuele populatie
 
