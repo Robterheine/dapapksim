@@ -23,3 +23,16 @@ body {
 #run {
   margin-bottom: 6px;
 }
+
+/* Sidebar: nette dropdowns (lange keuzenamen) */
+.sidebar .shiny-input-container { margin-bottom: 10px; }
+.sidebar label { font-weight: 600; color: #08306b; }
+.sidebar select, .sidebar .selectize-input {
+  max-width: 100%;
+  width: 100%;
+  font-size: 12.5px;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+.sidebar .selectize-dropdown { font-size: 12.5px; }
+.sidebar .selectize-dropdown-content .option { white-space: normal; }

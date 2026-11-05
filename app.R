@@ -16,8 +16,8 @@ library(copulapop)
 for (f in list.files("R", pattern = "\\.R$", full.names = TRUE)) source(f)
 
 mat_choices <- c(
-  "Farhan et al. 2024 — doi:10.1002/jcph.2484 (in-vivo UGT1A9, Hill)" = "farhan2024",
-  "Badee et al. 2019 via Jo et al. 2021 scenario 2 — doi:10.1002/psp4.12577 (sigmoidaal + exponentieel)" = "badee2019"
+  "Farhan et al. 2024 — jcph.2484 (in-vivo UGT1A9)" = "farhan2024",
+  "Badee et al. 2019 via Jo et al. 2021 — psp4.12577 (PBPK s2)" = "badee2019"
 )
 
 datasets <- c(

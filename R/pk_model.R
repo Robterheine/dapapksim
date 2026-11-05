@@ -39,12 +39,14 @@ maturation_functions <- function() {
   list(
     farhan2024 = list(
       label = "Farhan et al. 2024 - doi:10.1002/jcph.2484 (in-vivo UGT1A9, Hill)",
+      short = "Farhan 2024 (jcph.2484)",
       fun = function(age, th) {
         th$fbirth + (1 - th$fbirth) * age^th$hill / (th$tm50^th$hill + age^th$hill)
       }
     ),
     badee2019 = list(
       label = "Badee et al. 2019 via Jo et al. 2021 scenario 2 - doi:10.1002/psp4.12577 (sigmoidaal <=1 j + exponentieel 1-20 j)",
+      short = "Badee 2019 via Jo 2021 s2 (psp4.12577)",
       fun = function(age, th = NULL) {
         sig <- function(a) 1.305 * a^1.1 / (0.086^1.1 + a^1.1)          # Fbirth=0, Age50=0.086, n=1.1, cap 1 j
         expf <- function(a) 1.243 - 0.833 * exp(0.2 * (a - 25))          # C0=1.243, C1=-0.833, C2=0.2, C3=25, cap 20 j
@@ -227,7 +229,7 @@ simulate_population_pk <- function(pop,
     metrics = metrics,
     settings = list(dose_mgkg = dose_mgkg, tau = tau, n_doses = n_doses,
                     iov_f1_cv = iov_f1_cv, ka_bsv = ka_bsv, seed = seed, n = n,
-                    mat_option = mat_option, mat_label = maturation_functions()[[mat_option]]$label,
+                    mat_option = mat_option, mat_label = maturation_functions()[[mat_option]]$short,
                     egfr_source = egfr_info$source, egfr_unit_note = egfr_info$unit_note)
   )
 }
