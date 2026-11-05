@@ -1,5 +1,8 @@
 # Validatierapport — dapagliflozine popPK-simulaties vs Penland et al. 2023
 
+> **Volledig validatierapport (numeriek + grafisch, vs Penland 2023 én Tirucherai 2016): zie [docs/VALIDATION_REPORT.md](docs/VALIDATION_REPORT.md).**
+
+
 **Gegenereerd:** 2026-11 — bij het opzetten van `dapagliflozin-pk-children/` (Shiny app voor
 Monte Carlo simulatie van het dapagliflozine popPK-model in kinderen).
 

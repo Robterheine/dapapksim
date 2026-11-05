@@ -63,6 +63,11 @@ dapagliflozin-pk-app/
 │   ├── pk_model.R     # popPK model: parameters, IIV/IOV, RK4 Monte Carlo simulatie, metrieken
 │   └── population.R   # wrapper rond copulapop::generate_population()
 ├── model_doc.md       # modelbeschrijving, assumpties en bronnen (tab in de app)
+├── VALIDATION.md      # korte validatie vs Penland 2023
+├── docs/VALIDATION_REPORT.md  # volledig validatierapport (numeriek + grafisch, vs Penland 2023 én Tirucherai 2016)
+├── docs/EVALUATION.md         # expert-review (klinisch farmacoloog + UI-designer)
+├── docs/HANDOVER_renale_CL_UGT1A9_maturatie.md
+├── figures/           # validatiefiguren (SVG)
 ├── www/style.css
 └── README.md
 ```
