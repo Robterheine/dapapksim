@@ -92,4 +92,5 @@
 <circle cx="85" cy="452" r="5" fill="#222"/><text x="95" y="456" font-size="11">Reported geomean (whiskers = +/-1 log-SD from %CV)</text>
 <circle cx="415" cy="452" r="5" fill="none" stroke="#b2182b" stroke-width="2"/><text x="425" y="456" font-size="11">Simulated population geomean</text>
 <rect x="645" y="448" width="9" height="8" fill="#2166ac"/><text x="659" y="456" font-size="11">Simulated typical value (ETA=0)</text>
+<text x="1170" y="28" font-size="11" font-weight="bold" text-anchor="end" fill="#1a7f37">VERDICT: PASS for AUC/CL (-4 to -10%) and tmax; Cmax conservative (-31 to -51%) due to fixed Ka-BSV</text>
 </svg>
