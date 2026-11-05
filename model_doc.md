@@ -25,7 +25,7 @@ uitwisseling `Q`). Concentratie = A2/V2.
 | V2 | 3 | 73.47 L | centraal volume bij BWT=84; lineair in BWT/84 |
 | V3 | 4 | 168.5 L | perifeer volume bij BWT=84; lineair in BWT/84 |
 | Q | 5 | 9.137 L/h | intercompartimentale klaring; (BWT/84)^0.75 |
-| Renale slope | 6 | 0.177 L/h per mL/min/1.73m² | renale component = slope × EGFR |
+| Renale slope | 6 | 0.177 L/h per mL/min/1.73m² | renale component = slope × EGFR × (BSA/BSA_ref), met BSA_ref = 2 m² (aanname bronpopulatie) |
 | Sex-effect | 7 | −0.1441 | **niet toegepast** — verwijderd omdat allometrie op BWT dit effect dekt (zie "Verschillen t.o.v. bronmodel") |
 | ALAG1 | 9 | 0.5 h (fixed) | lagtijd depot; placeholder — niet gerapporteerd in de publicatie |
 | TM50 UGT1A9 | 10 | 0.09 jaar | maturatie (Farhan 2024) |
@@ -37,7 +37,7 @@ Individuele parameters:
 ```
 MAT  = 0.05 + 0.95 * AGE^1.9 / (0.09^1.9 + AGE^1.9)
 CLnr = 5.44 * MAT * (BWT/84)^0.75
-CL   = CLnr + 0.177*EGFR
+CL   = CLnr + 0.177*EGFR*(BSA/2)   # BSA_ref = 2 m²; renale CL schaalt met BSA
 KA   = 2.833 * (BWT/84)^(-0.25)
 V2   = 73.47 * (BWT/84);  V3 = 168.5 * (BWT/84);  Q = 9.137 * (BWT/84)^0.75
 ```
@@ -65,7 +65,7 @@ V2   = 73.47 * (BWT/84);  V3 = 168.5 * (BWT/84);  Q = 9.137 * (BWT/84)^0.75
 ## Nierfunctie (EGFR) uit de copulapop-populatie — in mL/min/1.73m²
 
 Het NONMEM covariaat is **eGFR in mL/min/1.73m²** (renale slope in L/h per mL/min/1.73m²),
-dus er is **geen omrekening met BSA** nodig (BSA × eGFR/1.73 zou absoluut GFR in mL/min geven).
+de renale component wordt **wel** geschaald met BSA/BSA_ref (BSA_ref = 2 m², aanname bronpopulatie): CL_renaal = 0.177 × EGFR × (BSA/2). De eGFR zelf blijft per 1.73m²; alleen de renale klaring schaalt met BSA, omdat absolute renale klaring met lichaamsoppervlak schaalt (in kleine kinderen is de absolute renale klaring dus lager dan eGFR-per-1.73m² alleen zou suggereren).
 
 `copulapop::generate_population()` berekent zelf een kolom `EGFR` in exact deze eenheid,
 maar **alleen voor datasets die creatinine bevatten** (in de app: NHANES, RUMC):
@@ -84,7 +84,7 @@ tabblad "Virtuele populate".
 `0.413 × lengte(cm) / Scr(mg/dL)` (<18 j). Beide formules zijn **per definitie genormaliseerd
 per 1.73 m²** (mL/min/1.73m²) — dit staat ook in de copulapop-README ("EGFR … mL/min/1.73m²").
 De app gebruikt `pop$EGFR` **direct** in `THETA(6)·EGFR` (0.177 L/h per mL/min/1.73m²) en doet
-**nooit** een BSA-conversie naar absoluut GFR (mL/min). De fallback is eveneens per 1.73m².
+de eGFR zelf wordt **nooit** omgerekend naar absoluut GFR (mL/min); alleen de renale component van CL schaalt aanvullend met BSA/2. De fallback-eGFR is eveneens per 1.73m².
 Als permanente guard checkt `egfr_from_copula()` dat alle EGFR-waarden in het plausibele
 bereik 5–300 mL/min/1.73m² liggen; het resultaat staat in het tabblad "Virtuele populate".
 
@@ -94,6 +94,7 @@ bereik 5–300 mL/min/1.73m² liggen; het resultaat staat in het tabblad "Virtue
 - **AGE** = `AGE` (jaar) — maturatie van niet-renale CL.
 - **SEX** = `SEXISMALE` (1 = jongen, 0 = meisje) — alleen gebruikt in de eGFR-formules (via copulapop); niet meer in CL.
 - **EGFR** = `EGFR` (mL/min/1.73m²) — zie boven.
+- **BSA** = `BSA` (m², Mosteller via copulapop) — schaalt de renale component van CL (BSA/2).
 
 ## Steady state & metrieken
 
@@ -105,6 +106,7 @@ geplot vs eGFR en vs leeftijd met een LOESS-trendlijn.
 
 ## Verschillen t.o.v. het bronmodel (Penland 2023) — en waarom
 
+- **BSA-schaling van de renale component (aanpassing)**: `CL_ren = 0.177 × EGFR × (BSA/2)`, met BSA_ref = 2 m² als aanname voor de bronpopulatie (Penland: mediaan 84 kg, BSA ≈ 2 m²). daarmee blijft het model geankerd op de originele populatie (volwassen, BSA ≈ 2 m² → factor ≈ 1), terwijl bij kinderen met laag BSA de renale klaring relatief lager wordt — precies het verschil dat anders tot een te lage blootstelling vs PBPK leidde (Jo 2021). Zie `docs/VALIDATION_REPORT.md` §3.3.
 - **eGFR-vergelijking**: het artikel gebruikte CKD-EPI **2009**; copulapop gebruikt CKD-EPI
   **2021** (≥18 j) en bedside Schwartz (<18 j). Het artikel rapporteert dat de overstap
   2009→2021 "minimal impact" had op de parameterschattingen.

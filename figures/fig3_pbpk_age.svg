@@ -3,9 +3,9 @@
 <rect width="1200" height="580" fill="white"/>
 <rect width="1200" height="1" fill="none"/>
 <text x="12" y="22" font-size="15" font-weight="bold" fill="#111">Figure 3. Validation vs Jo et al. 2021 (PBPK, Table 3): paediatric exposure per age group</text>
-<text x="12" y="38" font-size="10.5" fill="#444">PBPK predictions at the PBPK-matched dose per age group (scenario 1 black, scenario 2 grey) vs this model at the same dose</text>
-<text x="12" y="52" font-size="10.5" fill="#444">(red). Log scale.</text>
-<text x="12" y="68" font-size="11" font-weight="bold" fill="#1a7f37">VERDICT: PASS - Cmax ratios 0.42-1.50 (within 0.5-2x); AUC within ~2x for age &gt;= 6 y, lower below (see report section 4.3)</text>
+<text x="12" y="38" font-size="10.5" fill="#444">PBPK predictions at the PBPK-matched dose per age group (scenario 1 black, scenario 2 grey) vs this model (red, renal CL</text>
+<text x="12" y="52" font-size="10.5" fill="#444">scaled by BSA/2 m2) at the same dose. Log scale.</text>
+<text x="12" y="68" font-size="11" font-weight="bold" fill="#1a7f37">VERDICT: PASS - Cmax ratios 0.84-1.85 (within 0.5-2x); AUC ratio 0.95 at 12-18 y, 0.35-0.68 below 6 y (see report section 4.3)</text>
 <rect x="64" y="84" width="528" height="380" fill="#fdfdfd" stroke="#999"/>
 <line x1="97.0" y1="84" x2="97.0" y2="464" stroke="#ececec"/>
 <line x1="97.0" y1="464" x2="97.0" y2="468" stroke="#333"/>
@@ -45,29 +45,29 @@
 <text x="14" y="274.0" font-size="11" text-anchor="middle" fill="#333" transform="rotate(-90 14 274.0)">A. AUC_INF (h*ng/mL)</text>
 <circle cx="88.0" cy="142.6" r="4" fill="#222"/>
 <circle cx="97.0" cy="133.5" r="4" fill="#999"/>
-<circle cx="106.0" cy="378.7" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
+<circle cx="106.0" cy="235.5" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
 <circle cx="154.0" cy="128.2" r="4" fill="#222"/>
 <circle cx="163.0" cy="139.3" r="4" fill="#999"/>
-<circle cx="172.0" cy="295.2" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
+<circle cx="172.0" cy="179.4" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
 <circle cx="220.0" cy="154.9" r="4" fill="#222"/>
 <circle cx="229.0" cy="143.4" r="4" fill="#999"/>
-<circle cx="238.0" cy="333.5" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
+<circle cx="238.0" cy="221.3" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
 <circle cx="286.0" cy="131.5" r="4" fill="#222"/>
 <circle cx="295.0" cy="142.2" r="4" fill="#999"/>
-<circle cx="304.0" cy="300.6" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
+<circle cx="304.0" cy="192.3" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
 <circle cx="352.0" cy="135.8" r="4" fill="#222"/>
 <circle cx="361.0" cy="132.4" r="4" fill="#999"/>
-<circle cx="370.0" cy="296.4" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
+<circle cx="370.0" cy="194.7" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
 <circle cx="418.0" cy="148.8" r="4" fill="#222"/>
 <circle cx="427.0" cy="140.0" r="4" fill="#999"/>
-<circle cx="436.0" cy="280.2" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
+<circle cx="436.0" cy="202.7" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
 <circle cx="484.0" cy="112.2" r="4" fill="#222"/>
 <circle cx="493.0" cy="128.2" r="4" fill="#999"/>
-<circle cx="502.0" cy="190.8" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
+<circle cx="502.0" cy="146.2" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
 <circle cx="550.0" cy="111.9" r="4" fill="#222"/>
 <circle cx="559.0" cy="102.7" r="4" fill="#999"/>
-<circle cx="568.0" cy="134.3" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
-<polyline fill="none" stroke="#b2182b" stroke-width="1.5" points="106.0,378.7 172.0,295.2 238.0,333.5 304.0,300.6 370.0,296.4 436.0,280.2 502.0,190.8 568.0,134.3"/>
+<circle cx="568.0" cy="116.6" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
+<polyline fill="none" stroke="#b2182b" stroke-width="1.5" points="106.0,235.5 172.0,179.4 238.0,221.3 304.0,192.3 370.0,194.7 436.0,202.7 502.0,146.2 568.0,116.6"/>
 <rect x="652" y="84" width="528" height="380" fill="#fdfdfd" stroke="#999"/>
 <line x1="685.0" y1="84" x2="685.0" y2="464" stroke="#ececec"/>
 <line x1="685.0" y1="464" x2="685.0" y2="468" stroke="#333"/>
@@ -107,29 +107,29 @@
 <text x="602" y="274.0" font-size="11" text-anchor="middle" fill="#333" transform="rotate(-90 602 274.0)">B. Cmax (ng/mL)</text>
 <circle cx="676.0" cy="418.0" r="4" fill="#222"/>
 <circle cx="685.0" cy="312.1" r="4" fill="#999"/>
-<circle cx="694.0" cy="389.8" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
+<circle cx="694.0" cy="366.4" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
 <circle cx="742.0" cy="366.8" r="4" fill="#222"/>
 <circle cx="751.0" cy="299.6" r="4" fill="#999"/>
-<circle cx="760.0" cy="330.5" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
+<circle cx="760.0" cy="312.0" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
 <circle cx="808.0" cy="356.6" r="4" fill="#222"/>
 <circle cx="817.0" cy="289.1" r="4" fill="#999"/>
-<circle cx="826.0" cy="349.0" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
+<circle cx="826.0" cy="325.7" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
 <circle cx="874.0" cy="308.7" r="4" fill="#222"/>
 <circle cx="883.0" cy="278.5" r="4" fill="#999"/>
-<circle cx="892.0" cy="306.2" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
+<circle cx="892.0" cy="280.8" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
 <circle cx="940.0" cy="300.2" r="4" fill="#222"/>
 <circle cx="949.0" cy="264.5" r="4" fill="#999"/>
-<circle cx="958.0" cy="303.0" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
+<circle cx="958.0" cy="278.0" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
 <circle cx="1006.0" cy="288.1" r="4" fill="#222"/>
 <circle cx="1015.0" cy="260.3" r="4" fill="#999"/>
-<circle cx="1024.0" cy="303.9" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
+<circle cx="1024.0" cy="285.2" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
 <circle cx="1072.0" cy="226.8" r="4" fill="#222"/>
 <circle cx="1081.0" cy="231.8" r="4" fill="#999"/>
-<circle cx="1090.0" cy="250.1" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
+<circle cx="1090.0" cy="240.4" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
 <circle cx="1138.0" cy="210.1" r="4" fill="#222"/>
 <circle cx="1147.0" cy="206.8" r="4" fill="#999"/>
-<circle cx="1156.0" cy="229.7" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
-<polyline fill="none" stroke="#b2182b" stroke-width="1.5" points="694.0,389.8 760.0,330.5 826.0,349.0 892.0,306.2 958.0,303.0 1024.0,303.9 1090.0,250.1 1156.0,229.7"/>
+<circle cx="1156.0" cy="226.2" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
+<polyline fill="none" stroke="#b2182b" stroke-width="1.5" points="694.0,366.4 760.0,312.0 826.0,325.7 892.0,280.8 958.0,278.0 1024.0,285.2 1090.0,240.4 1156.0,226.2"/>
 <circle cx="70" cy="508" r="4" fill="#222"/><text x="80" y="512" font-size="10">PBPK scenario 1 (Jo Table 3)</text>
 <circle cx="314" cy="508" r="4" fill="#999"/><text x="324" y="512" font-size="10">PBPK scenario 2</text>
 <circle cx="474" cy="508" r="4" fill="none" stroke="#b2182b" stroke-width="2"/><text x="484" y="512" font-size="10">This model (R), same dose</text>

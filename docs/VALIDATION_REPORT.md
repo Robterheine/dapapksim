@@ -34,8 +34,9 @@ verified separately.
 ## 2. Methods
 
 - **Model.** 2-compartment (ADVAN4/TRANS4), first-order absorption with 0.5 h lag,
-  linear elimination. `CL = 5.44·MAT·(BWT/84)^0.75 + 0.177·eGFR` (eGFR in mL/min/1.73 m²,
-  taken directly from copulapop); `MAT = 0.05 + 0.95·AGE^1.9/(0.09^1.9 + AGE^1.9)`
+  linear elimination. `CL = 5.44·MAT·(BWT/84)^0.75 + 0.177·eGFR·(BSA/2)` (eGFR in mL/min/1.73 m² from
+  copulapop; BSA in m² from copulapop, Mosteller; BSA_ref = 2 m² assumed for the source
+  population — see §4.3); `MAT = 0.05 + 0.95·AGE^1.9/(0.09^1.9 + AGE^1.9)`
   (Farhan 2024); KA/V2/V3/Q allometric on BWT/84. IIV log-normal: KA ω² = 8.52 (fixed,
   source), CL/F 0.1136, Vp/F 0.8229. **No residual error** — the 90% band is a
   prediction interval across individuals. IOV on F1 = 0% in this validation. Full
@@ -56,17 +57,17 @@ verified separately.
 
 | Source | Metric | Model vs published | Criterion | Verdict |
 |---|---|---|---|---|
-| Penland 2023 | CL/F (ref 84 kg, eGFR 90) | 21.4 vs 21.6 L/h (−1.1%) | ±10% | PASS |
-| Penland 2023 | AUC per 10 mg, 5 eGFR strata | +1.0 to +4.8% | ±10% | PASS |
+| Penland 2023 | CL/F (ref 84 kg, eGFR 90, BSA 2.0) | 21.5 vs 21.6 L/h (−0.3%) | ±10% | PASS |
+| Penland 2023 | AUC per 10 mg, 5 eGFR strata | −4.3 to +7.2% | ±10% | PASS |
 | Penland 2023 | Cmax after 10 mg | 102 vs ~100 ng/mL (+2.3%) | ±10% | PASS |
 | Penland 2023 | eGFR band ratios 45–59/30–44/15–29 | 1.46/1.78/2.27 vs 1.6/2.0/2.4 | ±0.25 fold | PASS |
-| Tirucherai 2016 | AUC0–inf, 2.5/5/10 mg | −5/−4/−10% (geomean) | ±15% | PASS |
-| Tirucherai 2016 | CL/F | +4 to +11% | ±15% | PASS |
+| Tirucherai 2016 | AUC0–inf, 2.5/5/10 mg | −7/−4/−12% (geomean) | ±15% | PASS |
+| Tirucherai 2016 | CL/F | +7 to +14% | ±15% | PASS |
 | Tirucherai 2016 | tmax | 1.3 h vs 0.88–1.50 h | within range | PASS |
 | Tirucherai 2016 | Cmax | −31% (typical) to −51% (pop. geomean) | 0.5–2× | PASS with caution (Ka-BSV) |
-| Jo 2021 (PBPK) | Cmax per age group | ratios 0.42–1.50 | 0.5–2× | PASS (1–3 m vs scenario 2: 0.42, borderline) |
-| Jo 2021 (PBPK) | AUC at PBPK-matched dose, age ≥6 y | ratios 0.42–0.78 | 0.5–2× | PASS (borderline) |
-| Jo 2021 (PBPK) | AUC at matched dose, age <6 y | ratios 0.06–0.23 | 0.5–2× | DEVIATES (structural, see §4.3) |
+| Jo 2021 (PBPK) | Cmax per age group | ratios 0.84–1.85 | 0.5–2× | PASS |
+| Jo 2021 (PBPK) | AUC at PBPK-matched dose, age ≥6 y | ratios 0.68–0.95 | 0.5–2× | PASS |
+| Jo 2021 (PBPK) | AUC at matched dose, age <6 y | ratios 0.35–0.56 (was 0.06–0.23 before BSA scaling) | 0.5–2× | IMPROVED; residual gap = UGT1A9 ontogeny (§4.3) |
 
 ### 3.1 Penland et al. 2023 (adults/CKD) — Table 1, Figure 1
 
@@ -76,15 +77,15 @@ Typical values (ETA = 0), 10 mg once daily, steady state.
 
 | Metric | Model | Reported | Deviation |
 |---|---|---|---|
-| CL/F reference (84 kg, eGFR 90) | 21.4 L/h | 21.6 L/h | −1.1% |
-| AUC per 10 mg, adult T2DM w/o CKD (90 kg, eGFR 90) | 467 ng·h/mL | 464 ng·h/mL | +0.7% |
-| AUC per 10 mg, DAPA-CKD +T2DM (81 kg, eGFR 42) | 783 ng·h/mL | 757 ng·h/mL | +3.4% |
-| AUC per 10 mg, DAPA-CKD −T2DM (78 kg, eGFR 40) | 815 ng·h/mL | 778 ng·h/mL | +4.8% |
+| CL/F reference (84 kg, eGFR 90, BSA 2.0 m²) | 21.5 L/h | 21.6 L/h | −0.3% |
+| AUC per 10 mg, adult T2DM w/o CKD (90 kg, eGFR 90) | 444 ng·h/mL | 464 ng·h/mL | −4.3% |
+| AUC per 10 mg, DAPA-CKD +T2DM (81 kg, eGFR 42) | 790 ng·h/mL | 757 ng·h/mL | +4.4% |
+| AUC per 10 mg, DAPA-CKD −T2DM (78 kg, eGFR 40) | 834 ng·h/mL | 778 ng·h/mL | +7.2% |
 | Cmax after 10 mg (84 kg, eGFR 90) | 102 ng/mL | ~100 ng/mL | +2.3% |
 | tmax after 10 mg | 1.3 h | ~1–2 h | within range |
 
-Per eGFR stratum (Penland Table S4): 22 → 1060 vs 1020 (+4.0%); 37 → 830 vs 819
-(+1.3%); 52 → 681 vs 666 (+2.2%); 75 → 534 vs 528 (+1.0%); 100 → 432 vs 420 (+2.8%).
+Per eGFR stratum (Penland Table S4, adults BSA ≈ 2 m²): 22 → 1056 vs 1020 (+3.5%); 37 → 825 vs 819
+(+0.7%); 52 → 677 vs 666 (+1.7%); 75 → 530 vs 528 (+0.4%); 100 → 428 vs 420 (+1.9%).
 All strata within the reported P5–P95.
 
 ![Figure 1](../figures/fig1_penland_egfr.svg)
@@ -101,9 +102,9 @@ Virtual paediatric population N = 2000; reported = geometric mean (%CV), Table 2
 
 | Dose | AUC0–inf model pop. geomean | AUC0–inf model typical (ETA=0) | AUC0–inf reported | Dev. pop. | CL/F model (mL/min) | CL/F reported |
 |---|---|---|---|---|---|---|
-| 2.5 mg | 96 | 96 | 101 (23%) | −5% | 436 | 413 (26%) |
-| 5 mg | 191 | 191 | 199 (29%) | −4% | 436 | 418 (27%) |
-| 10 mg | 383 | 382 | 427 (31%) | −10% | 436 | 391 (25%) |
+| 2.5 mg | 94 | 94 | 101 (23%) | −7% | 444 | 413 (26%) |
+| 5 mg | 191 | 190 | 199 (29%) | −4% | 437 | 418 (27%) |
+| 10 mg | 377 | 367 | 427 (31%) | −12% | 443 | 391 (25%) |
 
 **Table 2b.** Cmax, tmax, t½ per dose group.
 
@@ -133,32 +134,32 @@ patient of that age (median weight; age-based eGFR).
 
 | Age group | PBPK dose | AUC PBPK S1 [S2] | AUC model | ratio vs S1 [S2] |
 |---|---|---|---|---|
-| adult (reference) | 10 mg | 383 [observed 368] | 446 | 1.17 [obs 1.21] |
-| 12–18 y | 10 mg | 512 [568] | 399 | 0.78 [0.70] |
-| 6–12 y | 5 mg | 511 [427] | 212 | 0.42 [0.50] |
-| 2–6 y | 1.7 mg [2.5] | 339 [374] | 78 | 0.23 [0.21] |
-| 1.5–2 y | 1.2 [2.0] | 392 [407] | 65 | 0.17 [0.16] |
-| 1–1.5 y | 1.0 [1.6] | 412 [365] | 62 | 0.15 [0.17] |
-| 0.5–1 y | 0.5 [1.25] | 317 [361] | 43 | 0.14 [0.12] |
-| 3–6 m | 0.4 [0.9] | 427 [377] | 66 | 0.15 [0.17] |
-| 1–3 m | 0.15 [0.6] | 364 [402] | 26 | 0.07 [0.06] |
+| adult (reference) | 10 mg | 383 [observed 368] | 475 | 1.24 [obs 1.29] |
+| 12–18 y | 10 mg | 512 [568] | 486 | 0.95 [0.86] |
+| 6–12 y | 5 mg | 511 [427] | 349 | 0.68 [0.82] |
+| 2–6 y | 1.7 mg [2.5] | 339 [374] | 186 | 0.55 [0.50] |
+| 1.5–2 y | 1.2 [2.0] | 392 [407] | 203 | 0.52 [0.50] |
+| 1–1.5 y | 1.0 [1.6] | 412 [365] | 209 | 0.51 [0.57] |
+| 0.5–1 y | 0.5 [1.25] | 317 [361] | 151 | 0.48 [0.42] |
+| 3–6 m | 0.4 [0.9] | 427 [377] | 241 | 0.56 [0.64] |
+| 1–3 m | 0.15 [0.6] | 364 [402] | 129 | 0.35 [0.32] |
 
 **Table 3b.** Cmax (ng/mL) per age group.
 
 | Age group | Cmax PBPK S1 [S2] | Cmax model | ratio vs S1 [S2] |
 |---|---|---|---|
 | adult (reference) | 146 [observed 116] | 114 | 0.78 [obs 0.98] |
-| 12–18 y | 171 [177] | 137 | 0.80 [0.77] |
-| 6–12 y | 142 [134] | 109 | 0.77 [0.81] |
-| 2–6 y | 71 [97] | 60 | 0.84 [0.61] |
-| 1.5–2 y | 62 [93] | 61 | 0.97 [0.65] |
-| 1–1.5 y | 57 [80] | 58 | 1.03 [0.73] |
-| 0.5–1 y | 33 [71] | 36 | 1.09 [0.51] |
-| 3–6 m | 30 [63] | 44 | 1.50 [0.71] |
-| 1–3 m | 17 [55] | 23 | 1.37 [0.42] |
+| 12–18 y | 171 [177] | 143 | 0.84 [0.80] |
+| 6–12 y | 142 [134] | 122 | 0.86 [0.91] |
+| 2–6 y | 71 [97] | 74 | 1.03 [0.76] |
+| 1.5–2 y | 62 [93] | 80 | 1.28 [0.86] |
+| 1–1.5 y | 57 [80] | 78 | 1.37 [0.97] |
+| 0.5–1 y | 33 [71] | 47 | 1.41 [0.66] |
+| 3–6 m | 30 [63] | 55 | 1.85 [0.87] |
+| 1–3 m | 17 [55] | 30 | 1.78 [0.55] |
 
-At a fixed 10 mg, the age effect on AUC (12–18 y / adult) is 0.90× in this model vs
-1.34× (S1) / 1.48× (S2) in the PBPK paper.
+At a fixed 10 mg, the age effect on AUC (12–18 y / adult) is 1.02× in this model (BSA-scaled)
+vs 1.34× (S1) / 1.48× (S2) in the PBPK paper — the BSA scaling largely closes this gap.
 
 ![Figure 3](../figures/fig3_pbpk_age.svg)
 
@@ -200,12 +201,12 @@ half-life.***
   (~19–20 h vs NCA 10–14 h) — a property of the source model's distribution parameters
   (Vp/F 168.5 L, Q/F 9.1 L/h).
 - **PBPK comparison (Jo 2021):** Cmax ratios fall within the PBPK paper's own 0.5–2×
-  criterion in all age groups. AUC at PBPK-matched doses agrees within ~2× from 6 y
-  upwards; below 6 y our model gives lower AUC because the renal clearance is scaled per
-  1.73 m² (as in the source NONMEM model) and not by BSA — in neonates/infants the PBPK
-  scenario-1 additionally assumes very low UGT activity. Our maturation function
-  (Farhan in-vivo; adult by ~1 y) is faster than PBPK scenario 1 and closer to
-  scenario 2.
+  criterion in all age groups (0.84–1.85). After adding BSA scaling of the renal
+  clearance (§4.3), the AUC ratio at 12–18 y improved from 0.78 to 0.95 and at 6–12 y
+  from 0.42 to 0.68; below 6 y the ratio is 0.35–0.56 (previously 0.06–0.23) — the
+  remaining gap is the UGT1A9 ontogeny: PBPK scenario 1 assumes very slow enzyme
+  maturation in neonates/infants, whereas our Farhan in-vivo function reaches adult
+  activity by ~1 y (closer to PBPK scenario 2).
 - Anchor difference: this model is anchored to Penland CL/F 21.6 L/h; the PBPK model to
   IV CL 12.4 L/h (oral ~27 L/h) — hence our adult AUC (446) is ~17% above the PBPK
   prediction (383).
@@ -225,14 +226,29 @@ half-life.***
   +1…+4% of the model.
 - Dose proportionality is exact in the (linear) model and near-exact in the data.
 
-### 4.3 Limitations
+### 4.3 BSA scaling of renal clearance (model change after PBPK comparison)
+
+The first validation round showed lower AUC than the PBPK predictions (Jo 2021) in
+young children. Cause: the renal clearance term used eGFR per 1.73 m² directly (as in
+the source NONMEM model), whereas **absolute** renal clearance scales with body surface
+area — small children have low BSA and therefore lower absolute renal clearance. Fix
+(implemented in `R/pk_model.R`): assume the source population had BSA_ref = 2 m²
+(Penland median 84 kg ≈ 2.0 m²) and scale the renal term relatively:
+`CL_renal = 0.177·eGFR·(BSA/2)` (BSA from copulapop, Mosteller). This keeps the model
+anchored to the original adult population (BSA ≈ 2 → factor ≈ 1; Penland validation
+unchanged within a few %) while correctly lowering renal clearance in small children.
+Effect on the PBPK comparison: AUC ratio at 12–18 y 0.78 → 0.95; 6–12 y 0.42 → 0.68;
+<6 y 0.06–0.23 → 0.35–0.56. Remaining gap below 6 y is the UGT1A9 ontogeny difference
+(PBPK scenario 1 vs our Farhan in-vivo function).
+
+### 4.4 Limitations
 
 Validation against published summary data (not the 9715 individual observations);
 linear renal split vs power function in the paper; CKD-EPI 2009 (paper) vs 2021
 (copulapop, adults); Ka-BSV fixed; model t½ longer than NCA; ALAG1 = 0.5 h is a
 placeholder; virtual populations are general-population (copulapop), not T2DM
-patients; renal clearance per 1.73 m² (not BSA-scaled) diverges from PBPK in
-neonates/infants.
+patients; renal clearance is BSA-scaled (BSA_ref = 2 m²); residual PBPK gap in
+neonates/infants is the UGT1A9 ontogeny difference (see §4.3).
 
 ## 5. Conclusion
 

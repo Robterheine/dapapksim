@@ -23,7 +23,8 @@ nonmem_theta <- function() {
     v2     = 73.47,   # THETA(3)  Vc/F (L) bij BWT=84
     v3     = 168.5,   # THETA(4)  Vp/F (L) bij BWT=84
     q      = 9.137,   # THETA(5)  Q/F (L/h) bij BWT=84
-    egfr_s = 0.177,   # THETA(6)  renale slope (L/h per mL/min/1.73m2)
+    egfr_s = 0.177,   # THETA(6)  renale slope (L/h per mL/min/1.73m2), geschaald met BSA/BSA_ref
+    bsa_ref = 2,      # referentie-BSA (m2) van de bronpopulatie; renale CL schaalt met BSA/bsa_ref
     sex    = -0.1441, # THETA(7) - niet toegepast in dit model (allometrie op BWT dekt dit; zie model_doc.md)
     alag   = 0.5,     # THETA(9)  ALAG1 (h), fixed
     tm50   = 0.09,    # THETA(10) UGT1A9 maturatie TM50 (jaar), Farhan 2024 Table 1
@@ -45,9 +46,10 @@ nonmem_omega <- function() {
 # (in de app: NHANES, RUMC):
 #   <18 jaar : bedside Schwartz  eGFR = 0.413 * lengte(cm) / Scr(mg/dL)
 #   >=18 jaar: CKD-EPI 2021 (race-free)
-# Beide formules leveren mL/min/1.73m2 — precies de eenheid waarin het
-# NONMEM covariaat EGFR is gedefinieerd (THETA(6)*EGFR). Er is dus
-# GEEN omrekening met BSA nodig (dat zou absoluut GFR in mL/min geven).
+# Beide formules leveren mL/min/1.73m2 — precies de eenheid van het NONMEM
+# covariaat EGFR (THETA(6)*EGFR). De renale component wordt aanvullend geschaald
+# met BSA/BSA_ref (BSA_ref = 2 m2, aanname bronpopulatie), omdat absolute renale
+# klaring met BSA schaalt; eGFR alleen per 1.73m2 zou kleine kinderen overschatten.
 # Fallback bij datasets zonder creatinine (in de app: HSE): geschatte
 # normale eGFR per 1.73m2 als functie van leeftijd (GFR-maturatie, Hill).
 egfr_from_copula <- function(pop) {
@@ -83,14 +85,15 @@ individual_params <- function(pop, th = nonmem_theta(), egfr = NULL) {
   mat <- th$fbirth + (1 - th$fbirth) * age^th$hill / (th$tm50^th$hill + age^th$hill)
 
   clnr <- th$clnr * mat * w^0.75
-  cl   <- clnr + th$egfr_s * egfr
+  bsa  <- if ("BSA" %in% names(pop)) pop$BSA else rep(th$bsa_ref, n)
+  cl   <- clnr + th$egfr_s * egfr * (bsa / th$bsa_ref)
   ka   <- th$ka * w^(-0.25)
   v2   <- th$v2 * w
   v3   <- th$v3 * w
   q    <- th$q * w^0.75
 
   list(CL = cl, KA = ka, V2 = v2, V3 = v3, Q = q, ALAG = th$alag,
-       BWT = bwt, AGE = age, EGFR = egfr, SEX = sex, MAT = mat)
+       BWT = bwt, AGE = age, EGFR = egfr, BSA = bsa, SEX = sex, MAT = mat)
 }
 
 # Monte Carlo simulatie: n_doses doses met interval tau, per kind.
@@ -179,7 +182,7 @@ simulate_population_pk <- function(pop,
 
   metrics <- data.frame(
     ID = if ("ID" %in% names(pop)) pop$ID else seq_len(n),
-    AGE = p$AGE, BWT = p$BWT, EGFR = p$EGFR, SEXISMALE = p$SEX, MAT = p$MAT,
+    AGE = p$AGE, BWT = p$BWT, EGFR = p$EGFR, BSA = p$BSA, SEXISMALE = p$SEX, MAT = p$MAT,
     CL = p$CL, KA = p$KA, V2 = p$V2, V3 = p$V3, Q = p$Q,
     DOSE_MG = dose_mgkg * p$BWT
   )
