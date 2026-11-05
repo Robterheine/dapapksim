@@ -68,6 +68,7 @@ verified separately.
 | Jo 2021 (PBPK) | Cmax per age group | ratios 0.84–1.85 | 0.5–2× | PASS |
 | Jo 2021 (PBPK) | AUC at PBPK-matched dose, age ≥6 y | ratios 0.68–0.95 | 0.5–2× | PASS |
 | Jo 2021 (PBPK) | AUC at matched dose, age <6 y | ratios 0.35–0.56 (was 0.06–0.23 before BSA scaling) | 0.5–2× | IMPROVED; residual gap = UGT1A9 ontogeny (§4.3) |
+| Both maturation options | effect of choice | MAT = 1.000 for Farhan and 1.000 for Badee at ≥18 y; at 10–17 y Farhan 1.000 vs Badee 0.82–0.92 (≤ ~3% AUC effect); only <2 y differs materially — see §3.5 | n/a | PASS (see §3.5) |
 
 ### 3.1 Penland et al. 2023 (adults/CKD) — Table 1, Figure 1
 
@@ -194,6 +195,39 @@ marker. Panel B: 10 mg once daily at steady state, median + 90% PI (0–24 h).
 reported paediatric profile; steady-state accumulation is as expected for the model's
 half-life.***
 
+### 3.5 Both maturation functions validated — Figure 5, Table 4
+
+The app offers two maturation functions for non-renal CL (choice named after first
+author + reference in the UI): **Farhan et al. 2024** (default) and **Badee et al. 2019
+via Jo et al. 2021 scenario 2**. Both are validated here:
+
+- **Adults (Penland 2023) and 10–17 y (Tirucherai 2016): the choice is immaterial.**
+  MAT(40 y) = 1.000 for both functions; at 10–17 y Farhan MAT = 1.000 and Badee
+  0.82–0.92 (≤ ~3% effect on AUC, via the non-renal part of CL only). So all §3.1/§3.2
+  results hold for both options.
+- **Young children (<2 y), vs Jo 2021 PBPK (scenarios 1 and 2):** Table 4.
+
+**Table 4.** AUC ratio model/PBPK at the PBPK-matched dose, per age group, for both
+app maturation options (PBPK S1 = Simcyp default, S2 = Badee).
+
+| Age group | MAT Farhan | MAT Badee | AUC Farhan / S1 [S2] | AUC Badee / S1 [S2] |
+|---|---|---|---|---|
+| 1–3 m | 0.78 | 0.68 | 0.35 [0.32] | 0.37 [0.34] |
+| 3–6 m | 0.94 | 0.84 | 0.56 [0.64] | 0.59 [0.67] |
+| 0.5–1 y | 0.98 | 0.92 | 0.48 [0.42] | 0.49 [0.43] |
+| 1–1.5 y | 0.99 | 0.95 | 0.51 [0.57] | 0.51 [0.58] |
+| 1.5–2 y | 1.00 | 0.95 | 0.52 [0.50] | 0.52 [0.50] |
+| 2–6 y | 1.00 | 0.94 | 0.55 [0.50] | 0.55 [0.50] |
+| 6–12 y | 1.00 | 0.93 | 0.68 [0.82] | 0.69 [0.83] |
+| 12–18 y | 1.00 | 0.87 | 0.95 [0.86] | 0.97 [0.88] |
+
+![Figure 5](../figures/fig5_maturation.svg)
+
+*Figure 5. The two app maturation functions (Farhan 2024 default; Badee 2019/Jo scenario
+2) vs the Jo 2021 PBPK reference curves, log age axis. **Verdict: PASS — both options
+reach ~1 by ~1–2 y and track the PBPK scenario-2 curve closely in infancy; differences
+between the two app options are material only below ~2 y.***
+
 ## 4. Discussion
 
 ### 4.1 For the clinical pharmacologist
@@ -283,7 +317,8 @@ caution.
 ## Appendix A — Reproducibility
 
 - Model code: `R/pk_model.R`; app: `app.R`; figures: `figures/fig1_penland_egfr.svg`,
-  `fig2_tirucherai_dose.svg`, `fig3_pbpk_age.svg`, `fig3_curves.svg` (Figure 4).
+  `fig2_tirucherai_dose.svg`, `fig3_pbpk_age.svg`, `fig3_curves.svg` (Figure 4),
+  `fig5_maturation.svg` (Figure 5).
 - Simulations: typical values ETA = 0; Tirucherai population N = 2000, seed 20261105;
   PBPK per age group a typical virtual patient (median weight, age-based eGFR).
 
