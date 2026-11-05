@@ -1,112 +1,136 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="480" viewBox="0 0 1180 480" font-family="Helvetica, Arial, sans-serif">
-<rect width="1180" height="480" fill="white"/>
-<text x="590" y="28" font-size="16" font-weight="bold" text-anchor="middle">Figure 3. Validation vs Jo et al. 2021 (PBPK, Table 3): paediatric exposure per age group</text>
-<text x="590" y="47" font-size="12" text-anchor="middle" fill="#444">PBPK predictions at the PBPK-matched dose per age group (scenario 1 black, scenario 2 grey) vs our model at the same dose (red). Log scale.</text>
-<rect x="70" y="80" width="520" height="320" fill="none" stroke="#999"/>
-<line x1="102.5" y1="80" x2="102.5" y2="400" stroke="#eee"/>
-<text x="102.5" y="416" font-size="10" text-anchor="middle" fill="#333">1-3 m</text>
-<line x1="167.5" y1="80" x2="167.5" y2="400" stroke="#eee"/>
-<text x="167.5" y="416" font-size="10" text-anchor="middle" fill="#333">3-6 m</text>
-<line x1="232.5" y1="80" x2="232.5" y2="400" stroke="#eee"/>
-<text x="232.5" y="416" font-size="10" text-anchor="middle" fill="#333">0.5-1 y</text>
-<line x1="297.5" y1="80" x2="297.5" y2="400" stroke="#eee"/>
-<text x="297.5" y="416" font-size="10" text-anchor="middle" fill="#333">1-1.5 y</text>
-<line x1="362.5" y1="80" x2="362.5" y2="400" stroke="#eee"/>
-<text x="362.5" y="416" font-size="10" text-anchor="middle" fill="#333">1.5-2 y</text>
-<line x1="427.5" y1="80" x2="427.5" y2="400" stroke="#eee"/>
-<text x="427.5" y="416" font-size="10" text-anchor="middle" fill="#333">2-6 y</text>
-<line x1="492.5" y1="80" x2="492.5" y2="400" stroke="#eee"/>
-<text x="492.5" y="416" font-size="10" text-anchor="middle" fill="#333">6-12 y</text>
-<line x1="557.5" y1="80" x2="557.5" y2="400" stroke="#eee"/>
-<text x="557.5" y="416" font-size="10" text-anchor="middle" fill="#333">12-18 y</text>
-<line x1="70" y1="400.0" x2="590" y2="400.0" stroke="#eee"/>
-<text x="64" y="404.0" font-size="10" text-anchor="end" fill="#333">10</text>
-<line x1="70" y1="226.6" x2="590" y2="226.6" stroke="#eee"/>
-<text x="64" y="230.6" font-size="10" text-anchor="end" fill="#333">100</text>
-<line x1="70" y1="53.1" x2="590" y2="53.1" stroke="#eee"/>
-<text x="64" y="57.1" font-size="10" text-anchor="end" fill="#333">1000</text>
-<text x="330.0" y="70" font-size="13" font-weight="bold" text-anchor="middle">A. AUC_INF (h*ng/mL)</text>
-<text x="24" y="240.0" font-size="11" text-anchor="middle" fill="#333" transform="rotate(-90 24 240.0)">AUC_INF (h*ng/mL)</text>
-<text x="330.0" y="436" font-size="11" text-anchor="middle" fill="#333">Age group</text>
-<circle cx="94.5" cy="129.3" r="4" fill="#222"/>
-<circle cx="102.5" cy="121.7" r="4" fill="#999"/>
-<circle cx="110.5" cy="328.2" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
-<circle cx="159.5" cy="117.2" r="4" fill="#222"/>
-<circle cx="167.5" cy="126.6" r="4" fill="#999"/>
-<circle cx="175.5" cy="257.9" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
-<circle cx="224.5" cy="139.7" r="4" fill="#222"/>
-<circle cx="232.5" cy="130.0" r="4" fill="#999"/>
-<circle cx="240.5" cy="290.1" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
-<circle cx="289.5" cy="120.0" r="4" fill="#222"/>
-<circle cx="297.5" cy="129.0" r="4" fill="#999"/>
-<circle cx="305.5" cy="262.4" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
-<circle cx="354.5" cy="123.6" r="4" fill="#222"/>
-<circle cx="362.5" cy="120.8" r="4" fill="#999"/>
-<circle cx="370.5" cy="258.9" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
-<circle cx="419.5" cy="134.6" r="4" fill="#222"/>
-<circle cx="427.5" cy="127.2" r="4" fill="#999"/>
-<circle cx="435.5" cy="245.3" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
-<circle cx="484.5" cy="103.7" r="4" fill="#222"/>
-<circle cx="492.5" cy="117.2" r="4" fill="#999"/>
-<circle cx="500.5" cy="169.9" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
-<circle cx="549.5" cy="103.5" r="4" fill="#222"/>
-<circle cx="557.5" cy="95.7" r="4" fill="#999"/>
-<circle cx="565.5" cy="122.4" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
-<polyline fill="none" stroke="#b2182b" stroke-width="1.5" points="110.5,328.2 175.5,257.9 240.5,290.1 305.5,262.4 370.5,258.9 435.5,245.3 500.5,169.9 565.5,122.4"/>
-<rect x="670" y="80" width="520" height="320" fill="none" stroke="#999"/>
-<line x1="702.5" y1="80" x2="702.5" y2="400" stroke="#eee"/>
-<text x="702.5" y="416" font-size="10" text-anchor="middle" fill="#333">1-3 m</text>
-<line x1="767.5" y1="80" x2="767.5" y2="400" stroke="#eee"/>
-<text x="767.5" y="416" font-size="10" text-anchor="middle" fill="#333">3-6 m</text>
-<line x1="832.5" y1="80" x2="832.5" y2="400" stroke="#eee"/>
-<text x="832.5" y="416" font-size="10" text-anchor="middle" fill="#333">0.5-1 y</text>
-<line x1="897.5" y1="80" x2="897.5" y2="400" stroke="#eee"/>
-<text x="897.5" y="416" font-size="10" text-anchor="middle" fill="#333">1-1.5 y</text>
-<line x1="962.5" y1="80" x2="962.5" y2="400" stroke="#eee"/>
-<text x="962.5" y="416" font-size="10" text-anchor="middle" fill="#333">1.5-2 y</text>
-<line x1="1027.5" y1="80" x2="1027.5" y2="400" stroke="#eee"/>
-<text x="1027.5" y="416" font-size="10" text-anchor="middle" fill="#333">2-6 y</text>
-<line x1="1092.5" y1="80" x2="1092.5" y2="400" stroke="#eee"/>
-<text x="1092.5" y="416" font-size="10" text-anchor="middle" fill="#333">6-12 y</text>
-<line x1="1157.5" y1="80" x2="1157.5" y2="400" stroke="#eee"/>
-<text x="1157.5" y="416" font-size="10" text-anchor="middle" fill="#333">12-18 y</text>
-<line x1="670" y1="400.0" x2="1190" y2="400.0" stroke="#eee"/>
-<text x="664" y="404.0" font-size="10" text-anchor="end" fill="#333">10</text>
-<line x1="670" y1="226.6" x2="1190" y2="226.6" stroke="#eee"/>
-<text x="664" y="230.6" font-size="10" text-anchor="end" fill="#333">100</text>
-<line x1="670" y1="53.1" x2="1190" y2="53.1" stroke="#eee"/>
-<text x="664" y="57.1" font-size="10" text-anchor="end" fill="#333">1000</text>
-<text x="930.0" y="70" font-size="13" font-weight="bold" text-anchor="middle">B. Cmax (ng/mL)</text>
-<text x="624" y="240.0" font-size="11" text-anchor="middle" fill="#333" transform="rotate(-90 624 240.0)">Cmax (ng/mL)</text>
-<text x="930.0" y="436" font-size="11" text-anchor="middle" fill="#333">Age group</text>
-<circle cx="694.5" cy="361.3" r="4" fill="#222"/>
-<circle cx="702.5" cy="272.1" r="4" fill="#999"/>
-<circle cx="710.5" cy="337.5" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
-<circle cx="759.5" cy="318.2" r="4" fill="#222"/>
-<circle cx="767.5" cy="261.5" r="4" fill="#999"/>
-<circle cx="775.5" cy="287.6" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
-<circle cx="824.5" cy="309.6" r="4" fill="#222"/>
-<circle cx="832.5" cy="252.8" r="4" fill="#999"/>
-<circle cx="840.5" cy="303.2" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
-<circle cx="889.5" cy="269.2" r="4" fill="#222"/>
-<circle cx="897.5" cy="243.8" r="4" fill="#999"/>
-<circle cx="905.5" cy="267.1" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
-<circle cx="954.5" cy="262.1" r="4" fill="#222"/>
-<circle cx="962.5" cy="232.0" r="4" fill="#999"/>
-<circle cx="970.5" cy="264.4" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
-<circle cx="1019.5" cy="251.9" r="4" fill="#222"/>
-<circle cx="1027.5" cy="228.5" r="4" fill="#999"/>
-<circle cx="1035.5" cy="265.2" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
-<circle cx="1084.5" cy="200.2" r="4" fill="#222"/>
-<circle cx="1092.5" cy="204.4" r="4" fill="#999"/>
-<circle cx="1100.5" cy="219.9" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
-<circle cx="1149.5" cy="186.2" r="4" fill="#222"/>
-<circle cx="1157.5" cy="183.4" r="4" fill="#999"/>
-<circle cx="1165.5" cy="202.7" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
-<polyline fill="none" stroke="#b2182b" stroke-width="1.5" points="710.5,337.5 775.5,287.6 840.5,303.2 905.5,267.1 970.5,264.4 1035.5,265.2 1100.5,219.9 1165.5,202.7"/>
-<circle cx="80" cy="452" r="4" fill="#222"/><text x="88" y="456" font-size="10.5">PBPK scenario 1 (Jo Table 3)</text>
-<circle cx="300" cy="452" r="4" fill="#999"/><text x="308" y="456" font-size="10.5">PBPK scenario 2</text>
-<circle cx="460" cy="452" r="4" fill="none" stroke="#b2182b" stroke-width="2"/><text x="468" y="456" font-size="10.5">This model (R), same dose</text>
-<text x="1170" y="28" font-size="11" font-weight="bold" text-anchor="end" fill="#1a7f37">VERDICT: PASS - Cmax ratios 0.42-1.50 (0.5-2x criterion); AUC within ~2x for age >= 6 y</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="580" viewBox="0 0 1200 580" font-family="Helvetica, Arial, sans-serif">
+<rect width="1200" height="580" fill="white"/>
+<rect width="1200" height="1" fill="none"/>
+<text x="12" y="22" font-size="15" font-weight="bold" fill="#111">Figure 3. Validation vs Jo et al. 2021 (PBPK, Table 3): paediatric exposure per age group</text>
+<text x="12" y="38" font-size="10.5" fill="#444">PBPK predictions at the PBPK-matched dose per age group (scenario 1 black, scenario 2 grey) vs this model at the same dose</text>
+<text x="12" y="52" font-size="10.5" fill="#444">(red). Log scale.</text>
+<text x="12" y="68" font-size="11" font-weight="bold" fill="#1a7f37">VERDICT: PASS - Cmax ratios 0.42-1.50 (within 0.5-2x); AUC within ~2x for age &gt;= 6 y, lower below (see report section 4.3)</text>
+<rect x="64" y="84" width="528" height="380" fill="#fdfdfd" stroke="#999"/>
+<line x1="97.0" y1="84" x2="97.0" y2="464" stroke="#ececec"/>
+<line x1="97.0" y1="464" x2="97.0" y2="468" stroke="#333"/>
+<text x="97.0" y="480" font-size="10" text-anchor="middle" fill="#333">1-3 m</text>
+<line x1="163.0" y1="84" x2="163.0" y2="464" stroke="#ececec"/>
+<line x1="163.0" y1="464" x2="163.0" y2="468" stroke="#333"/>
+<text x="163.0" y="480" font-size="10" text-anchor="middle" fill="#333">3-6 m</text>
+<line x1="229.0" y1="84" x2="229.0" y2="464" stroke="#ececec"/>
+<line x1="229.0" y1="464" x2="229.0" y2="468" stroke="#333"/>
+<text x="229.0" y="480" font-size="10" text-anchor="middle" fill="#333">0.5-1 y</text>
+<line x1="295.0" y1="84" x2="295.0" y2="464" stroke="#ececec"/>
+<line x1="295.0" y1="464" x2="295.0" y2="468" stroke="#333"/>
+<text x="295.0" y="480" font-size="10" text-anchor="middle" fill="#333">1-1.5 y</text>
+<line x1="361.0" y1="84" x2="361.0" y2="464" stroke="#ececec"/>
+<line x1="361.0" y1="464" x2="361.0" y2="468" stroke="#333"/>
+<text x="361.0" y="480" font-size="10" text-anchor="middle" fill="#333">1.5-2 y</text>
+<line x1="427.0" y1="84" x2="427.0" y2="464" stroke="#ececec"/>
+<line x1="427.0" y1="464" x2="427.0" y2="468" stroke="#333"/>
+<text x="427.0" y="480" font-size="10" text-anchor="middle" fill="#333">2-6 y</text>
+<line x1="493.0" y1="84" x2="493.0" y2="464" stroke="#ececec"/>
+<line x1="493.0" y1="464" x2="493.0" y2="468" stroke="#333"/>
+<text x="493.0" y="480" font-size="10" text-anchor="middle" fill="#333">6-12 y</text>
+<line x1="559.0" y1="84" x2="559.0" y2="464" stroke="#ececec"/>
+<line x1="559.0" y1="464" x2="559.0" y2="468" stroke="#333"/>
+<text x="559.0" y="480" font-size="10" text-anchor="middle" fill="#333">12-18 y</text>
+<line x1="64" y1="464.0" x2="592" y2="464.0" stroke="#ececec"/>
+<line x1="60" y1="464.0" x2="64" y2="464.0" stroke="#333"/>
+<text x="57" y="467.5" font-size="10" text-anchor="end" fill="#333">10</text>
+<line x1="64" y1="258.0" x2="592" y2="258.0" stroke="#ececec"/>
+<line x1="60" y1="258.0" x2="64" y2="258.0" stroke="#333"/>
+<text x="57" y="261.5" font-size="10" text-anchor="end" fill="#333">100</text>
+<line x1="64" y1="52.1" x2="592" y2="52.1" stroke="#ececec"/>
+<line x1="60" y1="52.1" x2="64" y2="52.1" stroke="#333"/>
+<text x="57" y="55.6" font-size="10" text-anchor="end" fill="#333">1000</text>
+<text x="328.0" y="76" font-size="12" font-weight="bold" text-anchor="middle" fill="#111">A. AUC_INF (h*ng/mL)</text>
+<text x="328.0" y="494" font-size="11" text-anchor="middle" fill="#333">Age group</text>
+<text x="14" y="274.0" font-size="11" text-anchor="middle" fill="#333" transform="rotate(-90 14 274.0)">A. AUC_INF (h*ng/mL)</text>
+<circle cx="88.0" cy="142.6" r="4" fill="#222"/>
+<circle cx="97.0" cy="133.5" r="4" fill="#999"/>
+<circle cx="106.0" cy="378.7" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
+<circle cx="154.0" cy="128.2" r="4" fill="#222"/>
+<circle cx="163.0" cy="139.3" r="4" fill="#999"/>
+<circle cx="172.0" cy="295.2" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
+<circle cx="220.0" cy="154.9" r="4" fill="#222"/>
+<circle cx="229.0" cy="143.4" r="4" fill="#999"/>
+<circle cx="238.0" cy="333.5" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
+<circle cx="286.0" cy="131.5" r="4" fill="#222"/>
+<circle cx="295.0" cy="142.2" r="4" fill="#999"/>
+<circle cx="304.0" cy="300.6" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
+<circle cx="352.0" cy="135.8" r="4" fill="#222"/>
+<circle cx="361.0" cy="132.4" r="4" fill="#999"/>
+<circle cx="370.0" cy="296.4" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
+<circle cx="418.0" cy="148.8" r="4" fill="#222"/>
+<circle cx="427.0" cy="140.0" r="4" fill="#999"/>
+<circle cx="436.0" cy="280.2" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
+<circle cx="484.0" cy="112.2" r="4" fill="#222"/>
+<circle cx="493.0" cy="128.2" r="4" fill="#999"/>
+<circle cx="502.0" cy="190.8" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
+<circle cx="550.0" cy="111.9" r="4" fill="#222"/>
+<circle cx="559.0" cy="102.7" r="4" fill="#999"/>
+<circle cx="568.0" cy="134.3" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
+<polyline fill="none" stroke="#b2182b" stroke-width="1.5" points="106.0,378.7 172.0,295.2 238.0,333.5 304.0,300.6 370.0,296.4 436.0,280.2 502.0,190.8 568.0,134.3"/>
+<rect x="652" y="84" width="528" height="380" fill="#fdfdfd" stroke="#999"/>
+<line x1="685.0" y1="84" x2="685.0" y2="464" stroke="#ececec"/>
+<line x1="685.0" y1="464" x2="685.0" y2="468" stroke="#333"/>
+<text x="685.0" y="480" font-size="10" text-anchor="middle" fill="#333">1-3 m</text>
+<line x1="751.0" y1="84" x2="751.0" y2="464" stroke="#ececec"/>
+<line x1="751.0" y1="464" x2="751.0" y2="468" stroke="#333"/>
+<text x="751.0" y="480" font-size="10" text-anchor="middle" fill="#333">3-6 m</text>
+<line x1="817.0" y1="84" x2="817.0" y2="464" stroke="#ececec"/>
+<line x1="817.0" y1="464" x2="817.0" y2="468" stroke="#333"/>
+<text x="817.0" y="480" font-size="10" text-anchor="middle" fill="#333">0.5-1 y</text>
+<line x1="883.0" y1="84" x2="883.0" y2="464" stroke="#ececec"/>
+<line x1="883.0" y1="464" x2="883.0" y2="468" stroke="#333"/>
+<text x="883.0" y="480" font-size="10" text-anchor="middle" fill="#333">1-1.5 y</text>
+<line x1="949.0" y1="84" x2="949.0" y2="464" stroke="#ececec"/>
+<line x1="949.0" y1="464" x2="949.0" y2="468" stroke="#333"/>
+<text x="949.0" y="480" font-size="10" text-anchor="middle" fill="#333">1.5-2 y</text>
+<line x1="1015.0" y1="84" x2="1015.0" y2="464" stroke="#ececec"/>
+<line x1="1015.0" y1="464" x2="1015.0" y2="468" stroke="#333"/>
+<text x="1015.0" y="480" font-size="10" text-anchor="middle" fill="#333">2-6 y</text>
+<line x1="1081.0" y1="84" x2="1081.0" y2="464" stroke="#ececec"/>
+<line x1="1081.0" y1="464" x2="1081.0" y2="468" stroke="#333"/>
+<text x="1081.0" y="480" font-size="10" text-anchor="middle" fill="#333">6-12 y</text>
+<line x1="1147.0" y1="84" x2="1147.0" y2="464" stroke="#ececec"/>
+<line x1="1147.0" y1="464" x2="1147.0" y2="468" stroke="#333"/>
+<text x="1147.0" y="480" font-size="10" text-anchor="middle" fill="#333">12-18 y</text>
+<line x1="652" y1="464.0" x2="1180" y2="464.0" stroke="#ececec"/>
+<line x1="648" y1="464.0" x2="652" y2="464.0" stroke="#333"/>
+<text x="645" y="467.5" font-size="10" text-anchor="end" fill="#333">10</text>
+<line x1="652" y1="258.0" x2="1180" y2="258.0" stroke="#ececec"/>
+<line x1="648" y1="258.0" x2="652" y2="258.0" stroke="#333"/>
+<text x="645" y="261.5" font-size="10" text-anchor="end" fill="#333">100</text>
+<line x1="652" y1="52.1" x2="1180" y2="52.1" stroke="#ececec"/>
+<line x1="648" y1="52.1" x2="652" y2="52.1" stroke="#333"/>
+<text x="645" y="55.6" font-size="10" text-anchor="end" fill="#333">1000</text>
+<text x="916.0" y="76" font-size="12" font-weight="bold" text-anchor="middle" fill="#111">B. Cmax (ng/mL)</text>
+<text x="916.0" y="494" font-size="11" text-anchor="middle" fill="#333">Age group</text>
+<text x="602" y="274.0" font-size="11" text-anchor="middle" fill="#333" transform="rotate(-90 602 274.0)">B. Cmax (ng/mL)</text>
+<circle cx="676.0" cy="418.0" r="4" fill="#222"/>
+<circle cx="685.0" cy="312.1" r="4" fill="#999"/>
+<circle cx="694.0" cy="389.8" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
+<circle cx="742.0" cy="366.8" r="4" fill="#222"/>
+<circle cx="751.0" cy="299.6" r="4" fill="#999"/>
+<circle cx="760.0" cy="330.5" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
+<circle cx="808.0" cy="356.6" r="4" fill="#222"/>
+<circle cx="817.0" cy="289.1" r="4" fill="#999"/>
+<circle cx="826.0" cy="349.0" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
+<circle cx="874.0" cy="308.7" r="4" fill="#222"/>
+<circle cx="883.0" cy="278.5" r="4" fill="#999"/>
+<circle cx="892.0" cy="306.2" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
+<circle cx="940.0" cy="300.2" r="4" fill="#222"/>
+<circle cx="949.0" cy="264.5" r="4" fill="#999"/>
+<circle cx="958.0" cy="303.0" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
+<circle cx="1006.0" cy="288.1" r="4" fill="#222"/>
+<circle cx="1015.0" cy="260.3" r="4" fill="#999"/>
+<circle cx="1024.0" cy="303.9" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
+<circle cx="1072.0" cy="226.8" r="4" fill="#222"/>
+<circle cx="1081.0" cy="231.8" r="4" fill="#999"/>
+<circle cx="1090.0" cy="250.1" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
+<circle cx="1138.0" cy="210.1" r="4" fill="#222"/>
+<circle cx="1147.0" cy="206.8" r="4" fill="#999"/>
+<circle cx="1156.0" cy="229.7" r="4" fill="none" stroke="#b2182b" stroke-width="2"/>
+<polyline fill="none" stroke="#b2182b" stroke-width="1.5" points="694.0,389.8 760.0,330.5 826.0,349.0 892.0,306.2 958.0,303.0 1024.0,303.9 1090.0,250.1 1156.0,229.7"/>
+<circle cx="70" cy="508" r="4" fill="#222"/><text x="80" y="512" font-size="10">PBPK scenario 1 (Jo Table 3)</text>
+<circle cx="314" cy="508" r="4" fill="#999"/><text x="324" y="512" font-size="10">PBPK scenario 2</text>
+<circle cx="474" cy="508" r="4" fill="none" stroke="#b2182b" stroke-width="2"/><text x="484" y="512" font-size="10">This model (R), same dose</text>
 </svg>
