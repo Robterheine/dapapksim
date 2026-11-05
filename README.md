@@ -66,6 +66,7 @@ dapagliflozin-pk-app/
 ├── VALIDATION.md      # korte validatie vs Penland 2023
 ├── docs/VALIDATION_REPORT.md  # volledig validatierapport (vs Penland 2023, Tirucherai 2016, Jo 2021 PBPK)
 ├── docs/VALIDATION_REPORT.pdf # idem als PDF (6 pagina's, met figuren)
+├── docs/VALIDATION_REPORT.html # idem als HTML (zelf te exporteren naar PDF via de browser)
 ├── docs/EVALUATION.md         # expert-review (klinisch farmacoloog + UI-designer)
 ├── docs/HANDOVER_renale_CL_UGT1A9_maturatie.md
 ├── figures/           # validatiefiguren (SVG)

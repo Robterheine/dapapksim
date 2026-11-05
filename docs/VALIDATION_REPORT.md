@@ -3,6 +3,7 @@
 **Date:** 2026-11-05
 **Author:** Rob ter Heine (Radboud Applied Pharmacometrics group, Radboudumc) — r.terheine@radboudumc.nl; developed with Mistral (Mistral AI)
 **Source code:** https://github.com/Robterheine/dapapksim (`app.R`, `R/pk_model.R`)
+**HTML version:** `docs/VALIDATION_REPORT.html` (self-contained; export to PDF via browser print)
 **PDF version:** `docs/VALIDATION_REPORT.pdf`
 **Status:** pre-final, reviewed (see Appendix B: review log)
 
