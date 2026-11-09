@@ -87,6 +87,57 @@ reproduceren. Identificeerbaarheid: de pediatrische brondata (11–17 j) hebben 
 dus de maturatieparameters zijn gefixeerd uit de literatuur en alleen relevant bij
 extrapolatie < ~2 jaar.
 
+## Validatie van de maturatiefunctie — beide opties geschikt (keuze in de app)
+
+Bovenstaande sectie beschrijft de twee kiesbare maturatiefuncties. Hieronder staat de
+**validatie** ervan (volledig numeriek + grafisch in `docs/VALIDATION_REPORT.md` §3.5,
+Tabel 4 en Figure 5).
+
+**MAT-waarden per leeftijd** (fractie van volwassen UGT1A9-activiteit; beide app-opties
+genormaliseerd op AdultMax = 1; ter referentie de PBPK-scenario-1-curve van Jo 2021):
+
+| Leeftijd | Farhan 2024 (app-standaard) | Badee 2019 via Jo 2021 s2 | PBPK scenario 1 (Simcyp) |
+|---|---|---|---|
+| 0 (geboorte) | 0.05 | 0.00 | 0.08 |
+| 1 mnd | 0.49 | 0.49 | 0.12 |
+| 3 mnd | 0.88 | 0.76 | 0.21 |
+| 6 mnd | 0.96 | 0.87 | 0.33 |
+| 1 j | 0.99 | 0.94 | 0.50 |
+| 2 j | 1.00 | 0.95 | 0.69 |
+| 6 j | 1.00 | 0.94 | 0.89 |
+| 12 j | 1.00 | 0.91 | 0.95 |
+| 18 j | 1.00 | 0.80 | 0.97 |
+
+**Validatie vs PBPK (Jo et al. 2021, Tabel 3):** AUC-ratio model/PBPK bij de PBPK-matched
+dosis per leeftijdsgroep, voor beide app-opties (S1 = Simcyp default, S2 = Badee):
+
+| Leeftijdsgroep | AUC Farhan / S1 [S2] | AUC Badee / S1 [S2] |
+|---|---|---|
+| 1–3 mnd | 0.35 [0.32] | 0.37 [0.34] |
+| 3–6 mnd | 0.56 [0.64] | 0.59 [0.67] |
+| 0.5–1 j | 0.48 [0.42] | 0.49 [0.43] |
+| 1–1.5 j | 0.51 [0.57] | 0.51 [0.58] |
+| 1.5–2 j | 0.52 [0.50] | 0.52 [0.50] |
+| 2–6 j | 0.55 [0.50] | 0.55 [0.50] |
+| 6–12 j | 0.68 [0.82] | 0.69 [0.83] |
+| 12–18 j | 0.95 [0.86] | 0.97 [0.88] |
+
+**Conclusie geschiktheid (beoordeeld door klinisch farmacoloog — zie review-log in
+`docs/VALIDATION_REPORT.md`, Appendix B):**
+
+- **Beide functies zijn geschikt.** Ze bereiken beide ~1 (volwassen) rond 1–2 jaar en
+  volgen in de babytijd de PBPK-scenario-2-curve van Jo 2021 closely; de AUC-ratio's
+  liggen voor 6–18 j binnen het 0.5–2× criterium van de PBPK-paper.
+- **Voor volwassenen en 10–17 jaar maakt de keuze nagenoeg niet uit** (MAT 1.00 vs
+  0.82–0.92 → ≤ ~4% effect op AUC, alleen via het niet-renale deel van CL); de
+  validatie vs Penland 2023 en Tirucherai 2016 geldt dus voor beide opties.
+- **Alleen onder ~2 jaar is de keuze relevant.** Standaard = **Farhan 2024** (in-vivo
+  data, snelste maturatie, beste PBPK-voorspelaccuracy volgens Farhan). Kies
+  **Badee 2019 / Jo 2021 scenario 2** als je de PBPK-scenario-2-voorspellingen wilt
+  reproduceren (iets lagere maturatie in de schoolleeftijd).
+- De maturatieparameters zijn gefixeerd uit de literatuur (de pediatrische brondata
+  waren 11–17 j, MAT = 1) — het effect is alleen zichtbaar bij extrapolatie < ~2 jaar.
+
 ## Nierfunctie (eGFR) en absoluut GFR
 
 **Twee verwante maar verschillende grootheden:**

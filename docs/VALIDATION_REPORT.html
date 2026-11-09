@@ -97,7 +97,7 @@ hr { border: none; border-top: 0.6pt solid #ccc; margin: 10pt 0; }
 <tr><td>Jo 2021 (PBPK)</td><td>Cmax per age group</td><td>ratios 0.84–1.85</td><td>0.5–2×</td><td>PASS</td></tr>
 <tr><td>Jo 2021 (PBPK)</td><td>AUC at PBPK-matched dose, age ≥6 y</td><td>ratios 0.68–0.95</td><td>0.5–2×</td><td>PASS</td></tr>
 <tr><td>Jo 2021 (PBPK)</td><td>AUC at matched dose, age &lt;6 y</td><td>ratios 0.35–0.56 (was 0.06–0.23 before BSA scaling)</td><td>0.5–2×</td><td>IMPROVED; residual gap = UGT1A9 ontogeny (§4.3)</td></tr>
-<tr><td>Both maturation options</td><td>effect of choice</td><td>MAT = 1.000 for Farhan and 1.000 for Badee at ≥18 y; at 10–17 y Farhan 1.000 vs Badee 0.82–0.92 (≤ ~3% AUC effect); only &lt;2 y differs materially — see §3.5</td><td>n/a</td><td>PASS (see §3.5)</td></tr>
+<tr><td>Both maturation options</td><td>effect of choice</td><td>MAT = 1.000 for Farhan and 1.000 for Badee at ≥18 y; at 10–17 y Farhan 1.000 vs Badee 0.82–0.92 (≤ ~4% AUC effect); only &lt;2 y differs materially — see §3.5</td><td>n/a</td><td>PASS (see §3.5)</td></tr>
 </tbody></table>
 <h3>3.1 Penland et al. 2023 (adults/CKD) — Table 1, Figure 1</h3>
 <p>Typical values (ETA = 0), 10 mg once daily, steady state.</p>
@@ -617,7 +617,7 @@ hr { border: none; border-top: 0.6pt solid #ccc; margin: 10pt 0; }
 <p>via Jo et al. 2021 scenario 2**. Both are validated here:</p>
 <ul><li><b>Adults (Penland 2023) and 10–17 y (Tirucherai 2016): the choice is immaterial.</b></li></ul>
 <p>MAT(40 y) = 1.000 for both functions; at 10–17 y Farhan MAT = 1.000 and Badee</p>
-<p>0.82–0.92 (≤ ~3% effect on AUC, via the non-renal part of CL only). So all §3.1/§3.2</p>
+<p>0.82–0.92 (≤ ~4% effect on AUC, via the non-renal part of CL only). So all §3.1/§3.2</p>
 <p>results hold for both options.</p>
 <ul><li><b>Young children (&lt;2 y), vs Jo 2021 PBPK (scenarios 1 and 2):</b> Table 4.</li></ul>
 <p><b>Table 4.</b> AUC ratio model/PBPK at the PBPK-matched dose, per age group, for both</p>
@@ -779,6 +779,15 @@ hr { border: none; border-top: 0.6pt solid #ccc; margin: 10pt 0; }
 <ul><li><b>Biostatistician:</b> checked that geomean vs median, PI-across-individuals (no residual</li></ul>
 <p>error), Ka-BSV inflation of Cmax CV, and coverage statements are correct and clearly</p>
 <p>worded. Action: Table 0 verdict summary added; §4.2 rewritten.</p>
+<ul><li><b>Clinical pharmacologist (round 2, Dutch app tab):</b> reviewed the new "Validatie</li></ul>
+<p>van de maturatiefunctie" section added to the in-app "Model &amp; assumptions" tab</p>
+<p>(model_doc.md). Finding: the max AUC effect of the maturation choice at 10–17 y was</p>
+<p>stated as ~3%; recomputed from MAT values (Badee 0.82–0.92 vs Farhan 1.00 at</p>
+<p>10–17 y, non-renal share of CL ~23%) this is up to ~4% — corrected in both the app tab</p>
+<p>and this report. Structure (options, MAT-per-age table, PBPK ratio table, suitability</p>
+<p>conclusion) confirmed clear; suitability statement (both options suitable; choice</p>
+<p>immaterial ≥10 y, relevant only &lt;2 y; Farhan default, Badee for PBPK scenario-2</p>
+<p>reproduction) approved.</p>
 <ul><li><b>Proofreader (English):</b> language, consistency (units ng/mL, ng·h/mL, mL/min/1.73 m²),</li></ul>
 <p>figure numbering (S1 renamed to Figure 4 with an explanation), and caption style</p>
 <p>(every caption ends with a verdict). Action: all applied in this version.</p>

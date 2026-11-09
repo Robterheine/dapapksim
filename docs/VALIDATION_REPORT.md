@@ -68,7 +68,7 @@ verified separately.
 | Jo 2021 (PBPK) | Cmax per age group | ratios 0.84–1.85 | 0.5–2× | PASS |
 | Jo 2021 (PBPK) | AUC at PBPK-matched dose, age ≥6 y | ratios 0.68–0.95 | 0.5–2× | PASS |
 | Jo 2021 (PBPK) | AUC at matched dose, age <6 y | ratios 0.35–0.56 (was 0.06–0.23 before BSA scaling) | 0.5–2× | IMPROVED; residual gap = UGT1A9 ontogeny (§4.3) |
-| Both maturation options | effect of choice | MAT = 1.000 for Farhan and 1.000 for Badee at ≥18 y; at 10–17 y Farhan 1.000 vs Badee 0.82–0.92 (≤ ~3% AUC effect); only <2 y differs materially — see §3.5 | n/a | PASS (see §3.5) |
+| Both maturation options | effect of choice | MAT = 1.000 for Farhan and 1.000 for Badee at ≥18 y; at 10–17 y Farhan 1.000 vs Badee 0.82–0.92 (≤ ~4% AUC effect); only <2 y differs materially — see §3.5 | n/a | PASS (see §3.5) |
 
 ### 3.1 Penland et al. 2023 (adults/CKD) — Table 1, Figure 1
 
@@ -203,7 +203,7 @@ via Jo et al. 2021 scenario 2**. Both are validated here:
 
 - **Adults (Penland 2023) and 10–17 y (Tirucherai 2016): the choice is immaterial.**
   MAT(40 y) = 1.000 for both functions; at 10–17 y Farhan MAT = 1.000 and Badee
-  0.82–0.92 (≤ ~3% effect on AUC, via the non-renal part of CL only). So all §3.1/§3.2
+  0.82–0.92 (≤ ~4% effect on AUC, via the non-renal part of CL only). So all §3.1/§3.2
   results hold for both options.
 - **Young children (<2 y), vs Jo 2021 PBPK (scenarios 1 and 2):** Table 4.
 
@@ -336,6 +336,15 @@ transparency. A human review round is recommended before external use.
 - **Biostatistician:** checked that geomean vs median, PI-across-individuals (no residual
   error), Ka-BSV inflation of Cmax CV, and coverage statements are correct and clearly
   worded. Action: Table 0 verdict summary added; §4.2 rewritten.
+- **Clinical pharmacologist (round 2, Dutch app tab):** reviewed the new "Validatie
+  van de maturatiefunctie" section added to the in-app "Model & assumptions" tab
+  (model_doc.md). Finding: the max AUC effect of the maturation choice at 10–17 y was
+  stated as ~3%; recomputed from MAT values (Badee 0.82–0.92 vs Farhan 1.00 at
+  10–17 y, non-renal share of CL ~23%) this is up to ~4% — corrected in both the app tab
+  and this report. Structure (options, MAT-per-age table, PBPK ratio table, suitability
+  conclusion) confirmed clear; suitability statement (both options suitable; choice
+  immaterial ≥10 y, relevant only <2 y; Farhan default, Badee for PBPK scenario-2
+  reproduction) approved.
 - **Proofreader (English):** language, consistency (units ng/mL, ng·h/mL, mL/min/1.73 m²),
   figure numbering (S1 renamed to Figure 4 with an explanation), and caption style
   (every caption ends with a verdict). Action: all applied in this version.
