@@ -16,7 +16,7 @@ body {
   margin-top: 0;
 }
 
-.alert-danger {
+.alert-danger, .alert-warning {
   margin-bottom: 12px;
 }
 
@@ -36,3 +36,36 @@ body {
 }
 .sidebar .selectize-dropdown { font-size: 12.5px; }
 .sidebar .selectize-dropdown-content .option { white-space: normal; }
+
+/* In-app documentatie & validatietabbladen */
+.md-doc table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 12px 0 18px;
+  font-size: 13.5px;
+}
+.md-doc th, .md-doc td {
+  border: 1px solid #cbd6e2;
+  padding: 6px 10px;
+  vertical-align: top;
+}
+.md-doc th {
+  background-color: #eaf1f8;
+  color: #08306b;
+  font-weight: 600;
+}
+.md-doc tbody tr:nth-child(even) {
+  background-color: #f8fafd;
+}
+.md-doc img {
+  max-width: 100%;
+  height: auto;
+  border: 1px solid #dce6f2;
+  border-radius: 4px;
+  margin: 10px 0;
+}
+.md-doc pre {
+  background-color: #f5f8fc;
+  border: 1px solid #dce6f2;
+  font-size: 12.5px;
+}

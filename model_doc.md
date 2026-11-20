@@ -1,270 +1,272 @@
-# Model & assumpties
+# Model, fysiologische onderbouwing & volledige reproduceerbaarheid
 
-De app simuleert het **NONMEM populatiemodel van Penland et al.**
-(J Clin Pharmacol 2023;63:551–559, [doi:10.1002/jcph.2196](https://doi.org/10.1002/jcph.2196))
-met de volgende aanpassingen:
+Deze pagina bevat de **volledige wiskundige, fysiologische en algoritmische specificatie**
+van het in **dapapksim** geïmplementeerde populatie-PK model (`R/pk_model.R` en `R/population.R`).
+Alle vergelijkingen, parameterwaarden, randvoorwaarden, stochastische trekkingen en de
+gesloten-vorm solver zijn hieronder volledig uitgeschreven — inclusief een zelfstandig
+uitvoerbaar R-referentieblok in §6 — zodat het model **100% reproduceerbaar** is op basis
+van uitsluitend de informatie in deze app.
 
-1. **Klaring gesplitst** in niet-renale klaring (gematureerd) en renale klaring: `CL = CLnr + THETA(6)*EGFR`.
-2. **Allometrische schaling van alle parameters** t.o.v. `(BWT/84)` (84 kg = referentiewicht in de bronanalyse).
-3. **Maturatie van de niet-renale klaring (UGT1A9)** volgens Farhan et al. 2024
-   ([doi:10.1002/jcph.2484](https://doi.org/10.1002/jcph.2484), Table 1, propofol):
-   `MAT = 0.05 + 0.95 * AGE^1.9 / (0.09^1.9 + AGE^1.9)`.
+---
 
-## Structuur (ADVAN4 TRANS4)
+## 1. Overzicht en onderbouwing van de wijzigingen t.o.v. Penland et al. 2023
 
-3 compartimenten: **depot (1)** met lagtijd `ALAG1 = 0.5 h` → eerste-orde absorptie
-(`KA`) naar **centraal (2)** (volume `V2`, eliminatie `CL`) ↔ **perifeer (3)** (volume `V3`,
-uitwisseling `Q`). Concentratie = A2/V2.
+Het uitgangspunt is het twee-compartimentele orale NONMEM popPK-model van **Penland et al. 2023**
+(*J Clin Pharmacol* 2023;63:551–559, [doi:10.1002/jcph.2196](https://doi.org/10.1002/jcph.2196)),
+ontwikkeld op volwassen T2DM-, DAPA-CKD- en adolescente T2DM-data (`11–17 jaar`). Omdat deze
+applicatie bedoeld is voor **vrije extrapolatie naar elke leeftijd en elke dosis** (waaronder
+pasgeborenen, zuigelingen, ernstige obesitas en chronische nierschade), zijn zes empirische
+beperkingen van het bronmodel vervangen door mechanistische fysiologische schaling:
 
-## Parameterwaarden (THETA)
-
-| Parameter | THETA | Waarde | Betekenis |
+| Onderdeel | Empirisch bron-/eerste model | Huidig fysiologisch model (`dapapksim`) | Fysiologische & klinische onderbouwing |
 |---|---|---|---|
-| KA | 1 | 2.833 h⁻¹ | absorptie bij BWT=84; geschaald met (BWT/84)^−0.25 |
-| CLnr | 2 | 5.44 L/h | niet-renale CL/F, volwassene bij BWT=84, MAT=1 |
-| V2 | 3 | 73.47 L | centraal volume bij BWT=84; lineair in BWT/84 |
-| V3 | 4 | 168.5 L | perifeer volume bij BWT=84; lineair in BWT/84 |
-| Q | 5 | 9.137 L/h | intercompartimentale klaring; (BWT/84)^0.75 |
-| Renale slope | 6 | 0.177 L/h per mL/min/1.73m² | renale component = slope × EGFR × (BSA/BSA_ref), met BSA_ref = 2 m² (aanname bronpopulatie) |
-| Sex-effect | 7 | −0.1441 | **niet toegepast** — verwijderd omdat allometrie op BWT dit effect dekt (zie "Verschillen t.o.v. bronmodel") |
-| ALAG1 | 9 | 0.5 h (fixed) | lagtijd depot; placeholder — niet gerapporteerd in de publicatie |
-| TM50 UGT1A9 | 10 | 0.09 jaar | maturatie (Farhan 2024) |
-| Hill UGT1A9 | 11 | 1.9 | maturatie (Farhan 2024) |
-| Fbirth UGT1A9 | 12 | 0.05 | maturatie (Farhan 2024) |
+| **1. Lichaamsgrootte & obesitas** | Totale lichaamsmassa `(BWT/84)^0.75` en `BWT/84` | **Vetvrije massa (`FFM`) & Normal Fat Mass (`NFM`)** voor `CL`, `Q` (`Ffat = 0.25`) en `V2` (`Ffat = 0.20`); totaal `BWT` voor lipofiel `V3` | Vetweefsel draagt niet evenredig bij aan lever-/niermassa. In obese adolescenten (Tirucherai 2016, gem. `99,7 kg`) overschatte `BWT/84` de klaring en het centrale volume; `FFM`/`NFM` dekt tevens het geslachtsverschil zodat `THETA(7)` vervalt. |
+| **2. Eiwitbinding (`fu`)** | Impliciet constant (`fu` onafhankelijk van leeftijd) | **Albumine-ontogenie (McNamara & Alcorn 2002)** rond `fu_adult = 0.086` (`91,4%` gebonden bij `44 g/L`); rapportage van **`AUCu,ss`** | Pasgeborenen hebben lager serumalbumine (`~34 g/L`), waardoor `fu` ~27% hoger ligt (`0.109`). Voor een laag-extractie farmacon (`ER < 0.05`) schalen totale `CL/F` en `V3/F` lineair met `fu/fu_adult`, terwijl farmacologisch actieve ongebonden blootstelling (`AUCu,ss`) afhangt van intrinsieke klaring. |
+| **3. Nierfunctie (`eGFR` & `nGFR`)** | Vaste bedside Schwartz (`0.413`) op `0–18 j`; onjuiste aanname dat `NHANES` creatinine bevat; ad-hoc fallback `>= 30` | **`CKD-EPI 2021`** (`≥ 18 j`), **`Pierce 2021 CKiD U25`** (`1–<18 j` bij `CREAT`), en **`Rhodin 2009` PMA-rijping** (`< 1 j` en datasets zonder `CREAT`), begrensd op `[5, 180]` | Cross-sectionele `0–18 j` copula-correlatie mist maternale creatinineoverdracht bij pasgeborenen en gaf onfysiologisch hoge neonatale Schwartz-waarden (`> 110`). `CKiD U25` corrigeert leeftijds-/geslachtsbias tussen `1` en `18 j`. |
+| **4. Renale klaring & renaal UGT1A9** | Volledige `eGFR`-afhankelijke klaring (`~74%` van `CL`) gemodelleerd als passieve filtratie zonder enzymrijping | **Drie-paden decompositie:** hepatische UGT1A9 (`5.44 L/h`) + **renale tubulaire UGT1A9** (`15.78 L/h`, geschaald met `MAT` én `RF = eGFR/nGFR`) + onveranderde filtratie (`0.011 × eGFR × BSA/2`) | Slechts `< 2%` van dapagliflozine wordt onveranderd renaal uitgescheiden; het steile `eGFR`-effect komt door proximale tubulaire UGT1A9-glucuronidering tot D3OG (Kasichayanula 2014, Jo 2021). Door `RF = eGFR/nGFR` rijpt renaal UGT1A9 mee met `MAT` zonder dubbeltelling van lage neonatale GFR, maar daalt klaring wél proportioneel bij CKD (`RF < 1`). |
+| **5. UGT1A9-ontogenie** | Twee opties, waarbij `badee2019` per abuis door `1.305` werd gedeeld (`MAT(18 j) = 0.76`) | **Drie gevalideerde opties (`MAT(volwassen) = 1.0`):** `Farhan 2024` (standaard), gecorrigeerde `Badee 2019` (Jo s2) en `Simcyp s1` (Jo s1) | Dekt het volledige literatuurspectrum van snelle *in-vivo* rijping tot conservatieve langzame *in-vitro* ontogenie zonder discontinuïteit rond `18–20 jaar`. |
+| **6. GI-absorptie, `Ka`-BSV & ODE-solver** | `(BWT/84)^-0.25` (snellere `KA` in baby's!), `ω²_Ka = 8.52 FIX`, en pure-R RK4 met `ifelse`- en lagtijd-bugs | **Neonatale maagledigingsrijping `f_GI(AGE)`**, gekalibreerde **`ω²_Ka = 0.36`** (standaard), mean-gecentreerde `IOV`, en **exacte analytische `ADVAN4`-solver** | Maaglediging is bij pasgeborenen trager, niet sneller. `ω²_Ka = 8.52` was een sparse-dalspiegelartefact in Penland (`Cmax`-bias `-51%`, CV `126%`); `ω²_Ka = 0.36` reproduceert klinische `Cmax` en `35%` totale CV. De analytische solver is exact tot machineprecisie en ~50× sneller. |
 
-Individuele parameters:
+---
 
-```
-MAT  = 0.05 + 0.95 * AGE^1.9 / (0.09^1.9 + AGE^1.9)
-CLnr = 5.44 * MAT * (BWT/84)^0.75
-CL   = CLnr + 0.177*EGFR*(BSA/2)   # BSA_ref = 2 m²; renale CL schaalt met BSA
-KA   = 2.833 * (BWT/84)^(-0.25)
-V2   = 73.47 * (BWT/84);  V3 = 168.5 * (BWT/84);  Q = 9.137 * (BWT/84)^0.75
-```
+## 2. Compartimentele structuur (`ADVAN4 TRANS4`)
 
-## Variabiliteit
+Het structurele model bestaat uit drie compartimenten met hoeveelheden \((A_1, A_2, A_3)\) in **microgram (`µg`)**, tijd \(t\) in **uur (`h`)**, volumes in **liter (`L`)** en klaringen in **`L/h`**:
 
-- **IIV** (log-normaal, exp(ETA)), conform `$OMEGA BLOCK(3)`:
-  - ETA(1) op KA: ω² = **8.52 FIX** (vastgezet in de publicatie; altijd meegenomen).
-  - ETA(2) op CL/F: ω² = 0.1136 (≈34% CV)
-  - ETA(3) op Vp/F: ω² = 0.8229 (≈105% CV)
-  - geen BSV op V2 en Q in dit model.
-- **IOV** (schuifje, extensie t.o.v. het NONMEM model): per dosing occasion een eigen
-  log-normale multiplier op de **relatieve biologische beschikbaarheid F1** (de dosis die
-  het depot in gaat), met CV = ingestelde %. Gemodelleerd vanwege variabiliteit in de
-  toegediende dosis bij kinderen (tablet opgelost, via sonde toegediend).
-- **Residuele fout ($SIGMA / EPS) wordt expres NIET gesimuleerd** — alleen
-  inter-individuele variabiliteit (en optionele IOV). De gesimuleerde curve per kind is
-  de deterministische verwachte concentratie (A2/V2 gegeven de ETA's); de 90% band is
-  daarmee een predictie-interval over individuen (P5–P95 van de gesimuleerde kinderen),
-  niet over individuele observaties (geen VPC-style band).
-- Numeriek: RK4 met dt = 0.05 h. Om numerieke instabiliteit door de zeer grote Ka-BSV
-  (ω² = 8.52) te voorkomen, wordt individuele KA geclamped op [0.05, 25] h⁻¹; dit treft
-  alleen de extreme staart waar absorptie nagenoeg momentaan is.
+1. **Absorptiedepot (\(A_1\), darm):** orale dosis \(D\) (in `µg` \(= 1000 \times \text{dosis}_{\text{mg}}\)) komt het depot binnen na absorptielagtijd \(\text{ALAG}_1 = 0.5\text{ h}\) en wordt met eerste-orde snelheidsconstante \(K_a\) (`h⁻¹`) opgenomen.
+2. **Centraal compartiment (\(A_2\), volume \(V_2\)):** ontvangt \(K_a A_1\), elimineert lineair met totale schijnbare klaring \(CL\) (\(k_e = CL / V_2\)), en wisselt uit met het perifere compartiment via \(Q\) (\(k_{12} = Q / V_2\), \(k_{21} = Q / V_3\)).
+3. **Perifeer compartiment (\(A_3\), volume \(V_3\)):** weefseldistributiecompartiment.
 
-## Maturatiefunctie op niet-renale CL — twee opties (keuze in de app)
+De plasmaconcentratie is \(C(t) = A_2(t) / V_2\) in **`µg/L = ng/mL`**.
 
-De app biedt in de sidebar een keuze ("Maturatiefunctie op niet-renale CL (UGT1A9)"),
-benoemd naar eerste auteur + referentie. Beide functies zijn genormaliseerd op
-AdultMax = 1 (adult-CLnr is het referentiepunt) en werken alleen op de niet-renale
-component: `CLnr = 5.44 · MAT(AGE) · (BWT/84)^0.75`.
+$$\frac{dA_1}{dt} = -K_a A_1, \qquad \frac{dA_2}{dt} = K_a A_1 - (k_e + k_{12})A_2 + k_{21}A_3, \qquad \frac{dA_3}{dt} = k_{12}A_2 - k_{21}A_3$$
 
-1. **Farhan et al. 2024 — doi:10.1002/jcph.2484** (in-vivo UGT1A9 via propofol-CL; Hill;
-   Fbirth = 0.05, Age50 = 0.09 jaar, n = 1.9; AdultMax 1.1 genormaliseerd naar 1).
-   `MAT = 0.05 + 0.95·AGE^1.9/(0.09^1.9 + AGE^1.9)`. Snel: ~volwassen binnen ~1 jaar.
-   Dit is de **standaard** (huidige gedrag).
-2. **Badee et al. 2019 via Jo et al. 2021 (PBPK) scenario 2 — doi:10.1002/psp4.12577**
-   (Tabel 1 van Jo 2021): sigmoidaal (Eq. 1) voor leeftijd ≤ 1 jaar met AdultMax = 1.305,
-   Fbirth = 0, Age50 = 0.086 jaar, n = 1.1; daarboven exponentiële functie (Eq. 2)
-   `C0 + C1·exp(C2·(Age − C3))` met C0 = 1.243, C1 = −0.833, C2 = 0.2, C3 = 25 voor
-   1 < leeftijd ≤ 20 jaar; daarboven AdultMax. Genormaliseerd op AdultMax.
-   Snelle vroege maturatie (≈ 0.8 van volwassen op ~4 maanden), iets langzamer plateau
-   dan Farhan in de schoolleeftijd.
+---
 
-Kies Farhan 2024 als default (in-vivo data, beste PBPK-voorspelaccuracy volgens Farhan);
-kies Badee 2019/Jo-scenario-2 als je de PBPK-scenario-2-voorspellingen van Jo 2021 wilt
-reproduceren. Identificeerbaarheid: de pediatrische brondata (11–17 j) hebben MAT = 1,
-dus de maturatieparameters zijn gefixeerd uit de literatuur en alleen relevant bij
-extrapolatie < ~2 jaar.
+## 3. Volledige parameterspecificatie & covariaatvergelijkingen
 
-## Validatie van de maturatiefunctie — beide opties geschikt (keuze in de app)
+### 3.1 Vaste populatieparameters (`nonmem_theta()`)
 
-Bovenstaande sectie beschrijft de twee kiesbare maturatiefuncties. Hieronder staat de
-**validatie** ervan (volledig numeriek + grafisch in `docs/VALIDATION_REPORT.md` §3.5,
-Tabel 4 en Figure 5).
-
-**MAT-waarden per leeftijd** (fractie van volwassen UGT1A9-activiteit; beide app-opties
-genormaliseerd op AdultMax = 1; ter referentie de PBPK-scenario-1-curve van Jo 2021):
-
-| Leeftijd | Farhan 2024 (app-standaard) | Badee 2019 via Jo 2021 s2 | PBPK scenario 1 (Simcyp) |
+| Symbool in code | Waarde | Eenheid | Beschrijving & herkomst |
 |---|---|---|---|
-| 0 (geboorte) | 0.05 | 0.00 | 0.08 |
-| 1 mnd | 0.49 | 0.49 | 0.12 |
-| 3 mnd | 0.88 | 0.76 | 0.21 |
-| 6 mnd | 0.96 | 0.87 | 0.33 |
-| 1 j | 0.99 | 0.94 | 0.50 |
-| 2 j | 1.00 | 0.95 | 0.69 |
-| 6 j | 1.00 | 0.94 | 0.89 |
-| 12 j | 1.00 | 0.91 | 0.95 |
-| 18 j | 1.00 | 0.80 | 0.97 |
+| `ka` | `2.833` | `h⁻¹` | Volwassen absorptiesnelheidsconstante `THETA(1)` (Penland 2023) |
+| `cl_hep` | `5.44` | `L/h` | Hepatische UGT1A9-klaring (`CL/F`) bij ref-grootte, `MAT = 1`, `fu = 0.086` (afgeleid uit Penland Tabel S4 intercept bij `eGFR → 0`) |
+| `cl_ren_ugt` | `15.78` | `L/h` | Renale tubulaire UGT1A9-klaring (`CL/F`) bij ref-grootte, `MAT = 1`, `RF = 1`, `fu = 0.086` (zie afleiding §3.5) |
+| `cl_filt_s` | `0.011` | `L/h` per `mL/min/1.73m²` | Onveranderde glomerulaire/renale excretieslope bij `BSA_ref = 2.0 m²` (`0.99 L/h` bij `eGFR = 90`, ~4,6% van totale `CL/F`; Kasichayanula 2014) |
+| `v2` | `73.47` | `L` | Centraal verdelingsvolume `Vc/F` (`THETA(3)`) bij `NFM_V2,ref = 61.68 kg` |
+| `v3` | `168.5` | `L` | Perifeer verdelingsvolume `Vp/F` (`THETA(4)`) bij `BWT_ref = 84.0 kg`, `fu = 0.086` |
+| `q` | `9.137` | `L/h` | Intercompartimentale klaring `Q/F` (`THETA(5)`) bij `NFM_CL,ref = 63.08 kg` |
+| `alag` | `0.5` | `h` | Absorptielagtijd `ALAG1` (gefixeerd) |
+| `bwt_ref` / `bsa_ref` | `84.0` / `2.0` | `kg` / `m²` | Referentiegewicht en -BSA van de Penland-bronpopulatie (`84 kg`, `1.71 m`) |
+| `ffm_ref` | `56.1` | `kg` | Geslachtsgewogen referentie-FFM van de Penland-populatie (`~65%` man, `84 kg`, `BMI 28.7`) |
+| `nfm_cl_ref` / `nfm_v2_ref` | `63.08` / `61.68` | `kg` | Referentie-NFM: `56.1 + 0.25×(84−56.1) = 63.08` en `56.1 + 0.20×(84−56.1) = 61.68` |
+| `fu_adult` / `alb_adult` | `0.086` / `44.0` | `–` / `g/L` | Volwassen ongebonden fractie (`91.4%` gebonden) en referentie-serumalbumine |
+| `gi_f0` / `gi_t50` | `0.45` / `0.10` | `–` / `jaar` | Neonatale fractie maagledigingssnelheid bij geboorte en rijpingshalfwaardetijd (`~5 weken`) |
+| `tm50` / `hill` / `fbirth` | `0.09` / `1.9` / `0.05` | `jaar` / `–` / `–` | Farhan et al. 2024 *in-vivo* UGT1A9-maturatieparameters |
 
-**Validatie vs PBPK (Jo et al. 2021, Tabel 3):** AUC-ratio model/PBPK bij de PBPK-matched
-dosis per leeftijdsgroep, voor beide app-opties (S1 = Simcyp default, S2 = Badee):
+### 3.2 Covariaten uit de virtuele populatie (`copulapop`)
 
-| Leeftijdsgroep | AUC Farhan / S1 [S2] | AUC Badee / S1 [S2] |
-|---|---|---|
-| 1–3 mnd | 0.35 [0.32] | 0.37 [0.34] |
-| 3–6 mnd | 0.56 [0.64] | 0.59 [0.67] |
-| 0.5–1 j | 0.48 [0.42] | 0.49 [0.43] |
-| 1–1.5 j | 0.51 [0.57] | 0.51 [0.58] |
-| 1.5–2 j | 0.52 [0.50] | 0.52 [0.50] |
-| 2–6 j | 0.55 [0.50] | 0.55 [0.50] |
-| 6–12 j | 0.68 [0.82] | 0.69 [0.83] |
-| 12–18 j | 0.95 [0.86] | 0.97 [0.88] |
+Per virtueel individu worden gebruikt:
+- `BWT = WEIGHT` (`kg`), `AGE` (`jaar`, begrensd op \(\ge 0\)), `SEXISMALE` (`1` = man/jongen, `0` = vrouw/meisje).
+- `HEIGHT` in `m` (als een invoertabel `HEIGHT > 3` bevat, wordt automatisch gedeeld door `100` voor `cm → m`).
+- `BMI = BWT / max(HEIGHT^2, 0.09)` (\(\text{kg/m}^2\)).
+- `BSA = sqrt((HEIGHT * 100 * BWT) / 3600)` (\(\text{m}^2\), Mosteller), tenzij `BSA` al expliciet in de tabel staat.
+- *Fallback voor synthetische validatietabellen zonder `HEIGHT`:* als `BSA` bekend is, wordt `HEIGHT` geïnverteerd uit Mosteller (`min(2.15, max(0.35, (BSA^2 * 3600 / max(BWT, 0.5)) / 100))`); anders wordt een gladde groeicurve van `0.50 m` naar `1.76 m` (man) / `1.63 m` (vrouw) gebruikt (`estimate_height_m()`).
 
-**Conclusie geschiktheid (beoordeeld door klinisch farmacoloog — zie review-log in
-`docs/VALIDATION_REPORT.md`, Appendix B):**
+### 3.3 Lichaamssamenstelling (`FFM` en `NFM`)
 
-- **Beide functies zijn geschikt.** Ze bereiken beide ~1 (volwassen) rond 1–2 jaar en
-  volgen in de babytijd de PBPK-scenario-2-curve van Jo 2021 closely; de AUC-ratio's
-  liggen voor 6–18 j binnen het 0.5–2× criterium van de PBPK-paper.
-- **Voor volwassenen en 10–17 jaar maakt de keuze nagenoeg niet uit** (MAT 1.00 vs
-  0.82–0.92 → ≤ ~4% effect op AUC, alleen via het niet-renale deel van CL); de
-  validatie vs Penland 2023 en Tirucherai 2016 geldt dus voor beide opties.
-- **Alleen onder ~2 jaar is de keuze relevant.** Standaard = **Farhan 2024** (in-vivo
-  data, snelste maturatie, beste PBPK-voorspelaccuracy volgens Farhan). Kies
-  **Badee 2019 / Jo 2021 scenario 2** als je de PBPK-scenario-2-voorspellingen wilt
-  reproduceren (iets lagere maturatie in de schoolleeftijd).
-- De maturatieparameters zijn gefixeerd uit de literatuur (de pediatrische brondata
-  waren 11–17 j, MAT = 1) — het effect is alleen zichtbaar bij extrapolatie < ~2 jaar.
+Volgens **Janmahasatian et al. 2005** (\(\ge 18\text{ j}\)) en **Al-Sallami et al. 2015** (\(< 18\text{ j}\)):
 
-## Nierfunctie (eGFR) en absoluut GFR
+$$\text{FFM}_{\text{adult}} = \begin{cases} \dfrac{9270 \cdot \text{BWT}}{6680 + 216 \cdot \text{BMI}} & \text{als SEXISMALE} = 1 \\[10pt] \dfrac{9270 \cdot \text{BWT}}{8780 + 244 \cdot \text{BMI}} & \text{als SEXISMALE} = 0 \end{cases}$$
 
-**Twee verwante maar verschillende grootheden:**
+$$M_{\text{FFM}}(\text{AGE}) = \begin{cases} 1.0 & \text{als AGE} \ge 18 \\[6pt] 0.88 + \dfrac{0.12}{1 + (\text{AGE}/13.4)^{-12.7}} & \text{als AGE} < 18 \text{ en man (}0.88\text{ bij AGE}=0\text{)} \\[10pt] 1.11 - \dfrac{0.11}{1 + (\text{AGE}/7.1)^{-1.1}} & \text{als AGE} < 18 \text{ en vrouw (}1.11\text{ bij AGE}=0\text{)} \end{cases}$$
 
-- **eGFR (mL/min/1.73m²)** — genormaliseerd per 1.73 m². Dit is wat het NONMEM-covariaat
-  verwacht (THETA(6) in L/h per mL/min/1.73m²) en wat copulapop levert (kolom `EGFR`).
-- **Absoluut GFR (mL/min)** = eGFR × BSA/1.73. Wordt in dit model **niet** als covariaat
-  gebruikt; wél impliciet in de schaling van de renale klaring (zie onder).
+$$\text{FFM} = \min\!\left(\text{FFM}_{\text{adult}} \cdot M_{\text{FFM}}(\text{AGE}), \; 0.97 \cdot \text{BWT}\right)$$
 
-**Wat copulapop genereert** (alleen bij datasets mét creatinine — in de app: NHANES, RUMC):
+$$\text{NFM}_{CL} = \text{FFM} + 0.25(\text{BWT} - \text{FFM}), \qquad F_{\text{size},CL} = \left(\frac{\text{NFM}_{CL}}{63.08}\right)^{0.75}$$
 
-- < 18 jaar: bedside Schwartz — `eGFR = 0.413 × lengte(cm) / Scr(mg/dL)`
-- ≥ 18 jaar: CKD-EPI 2021 (race-free)
+$$\text{NFM}_{V_2} = \text{FFM} + 0.20(\text{BWT} - \text{FFM}), \qquad F_{\text{size},V_2} = \frac{\text{NFM}_{V_2}}{61.68}$$
 
-Beide formules zijn per definitie genormaliseerd per 1.73 m² (staat ook in de copulapop-
-README). De app gebruikt `pop$EGFR` **direct** in `THETA(6)·EGFR`; de eGFR zelf wordt
-nooit omgerekend naar absoluut GFR (mL/min). Bij datasets zonder creatinine (HSE) is er
-gheen EGFR-kolom: fallback = geschatte normale eGFR per 1.73m² per leeftijd
-(`pmax(30, 120·AGE^1.7/(0.75^1.7 + AGE^1.7))`). Bron en sanity-check staan in het tabblad
-"Virtuele populate".
+### 3.4 Ontogenie van plasma-eiwitbinding (`fu_mcnamara()`)
 
-**Renale component van CL — geschaald met BSA (BSA_ref = 2 m²):**
+Volgens **McNamara & Alcorn 2002** (met \(\text{days} = \max(1.0, \; 365.25 \times \text{AGE})\) wanneer `ALBUMIN` niet gemeten is):
 
+$$[\text{Alb}](\text{AGE}) = \begin{cases} 44.0\text{ g/L} & \text{als AGE} \ge 18 \\ \min\!\left(44.0, \; 1.1287 \ln(\text{days}) + 33.746\right)\text{ g/L} & \text{als AGE} < 18 \end{cases}$$
+
+$$f_u(\text{AGE}) = \frac{1}{1 + \dfrac{[\text{Alb}](\text{AGE})}{44.0} \cdot \dfrac{1 - 0.086}{0.086}}, \qquad \text{fu\_ratio} = \frac{f_u(\text{AGE})}{0.086}$$
+
+### 3.5 Nierfunctie-ontogenie (`ngfr_rhodin()`) en individuele `eGFR` (`egfr_from_copula()`)
+
+1. **Verwachte gezonde GFR naar postmenstruele leeftijd (`nGFR` in `mL/min/1.73m²`; Rhodin et al. 2009 + veroudering boven 35 j):**
+   - Geschatte zwangerschapsduur bij geboorte (`GA` in weken) voor kleine pasgeborenen:
+     $$\text{GA} = \begin{cases} \min\!\left(40, \max(24, \; 22 + 7.2 \cdot \text{BWT})\right) & \text{als AGE} < 0.1\text{ j en BWT} < 2.5\text{ kg} \\ 40 & \text{anders} \end{cases}$$
+   - Postmenstruele leeftijd \(\text{PMA} = \text{GA} + 52.1775 \cdot \text{AGE}\) (weken).
+   - $$\text{nGFR}(\text{AGE}, \text{BWT}) = 115.0 \cdot \frac{\text{PMA}^{3.4}}{47.7^{3.4} + \text{PMA}^{3.4}} \cdot 0.9925^{\max(0, \; \text{AGE} - 35)}$$
+
+2. **Individuele `eGFR` (`mL/min/1.73m²`):**
+   - **Indien `CREAT` (µmol/L) aanwezig is in de dataset (`RUMC`):** zij \(\text{SCr} = \max(\text{CREAT} / 88.4, \; 0.05)\) in `mg/dL`:
+     - **Volwassenen (\(\text{AGE} \ge 18\text{ j}\), CKD-EPI 2021 race-free):**
+       met \(\kappa = 0.9\) (man) / \(0.7\) (vrouw), \(\alpha = -0.302\) (man) / \(-0.241\) (vrouw), \(f_{\text{sex}} = 1.0\) (man) / \(1.012\) (vrouw):
+       $$\text{eGFR} = 142 \cdot \min(\text{SCr}/\kappa, 1)^{\alpha} \cdot \max(\text{SCr}/\kappa, 1)^{-1.200} \cdot 0.9938^{\text{AGE}} \cdot f_{\text{sex}}$$
+     - **Kinderen en adolescenten (\(1 \le \text{AGE} < 18\text{ j}\), Pierce et al. 2021 CKiD U25):**
+       $$k = \begin{cases} 39.0 \cdot 1.008^{\text{AGE}-12} & \text{man, AGE} < 12 \\ 39.0 \cdot 1.045^{\text{AGE}-12} & \text{man, } 12 \le \text{AGE} < 18 \\ 36.1 \cdot 1.008^{\text{AGE}-12} & \text{vrouw, AGE} < 12 \\ 36.1 \cdot 1.023^{\text{AGE}-12} & \text{vrouw, } 12 \le \text{AGE} < 18 \end{cases}, \qquad \text{eGFR} = \frac{k \cdot \text{HEIGHT}_m}{\text{SCr}}$$
+     - **Zuigelingen (\(\text{AGE} < 1\text{ j}\)):** \(\text{eGFR} = \text{nGFR}(\text{AGE}, \text{BWT}) \cdot \exp(\eta_{\text{GFR}})\) met \(\eta_{\text{GFR}} \sim \mathcal{N}(0, 0.215^2)\).
+     - Alle waarden worden begrensd op **`[5, 180] mL/min/1.73m²`**.
+   - **Indien `CREAT` ontbreekt (`NHANES`, `HSE`):**
+     $$\text{eGFR} = \min\!\left(180, \; \max\!\left(5, \; \text{nGFR}(\text{AGE}, \text{BWT}) \cdot \exp(\eta_{\text{GFR}})\right)\right), \qquad \eta_{\text{GFR}} \sim \mathcal{N}(0, 0.215^2)$$
+
+3. **Relatieve nierfunctie (`RF`) en afleiding van de 3-paden klaring:**
+   $$\text{RF} = \min\!\left(1.75, \; \max\!\left(0, \; \frac{\text{eGFR}}{\max(\text{nGFR}(\text{AGE}, \text{BWT}), 1.0)}\right)\right)$$
+   *Afleiding anker:* In Penland et al. 2023 bedraagt populatie-`CL/F = 21.56 L/h` bij `BWT = 84 kg`, `BSA = 2.0 m²`, `eGFR = 90` en mediane leeftijd `62 jaar` (`nGFR(62) = 93.84`, dus `RF = 90 / 93.84 = 0.9591`). Met `CL_hep = 5.44 L/h` en onveranderde filtratie `0.011 × 90 = 0.99 L/h` volgt exact `CL_ren_ugt = (21.56 − 5.44 − 0.99) / 0.9591 = 15.78 L/h`.
+
+### 3.6 Drie UGT1A9-maturatiefuncties (`MAT`)
+
+1. **`farhan2024` (standaard, Farhan et al. 2024 *in-vivo*):**
+   $$\text{MAT}(\text{AGE}) = 0.05 + \frac{0.95 \cdot \text{AGE}^{1.9}}{0.09^{1.9} + \text{AGE}^{1.9}}$$
+2. **`badee2019` (Badee et al. 2019 / Jo et al. 2021 scenario 2):**
+   $$\text{MAT}(\text{AGE}) = \begin{cases} 0 & \text{AGE} \le 0 \\ \dfrac{1.305 \cdot \text{AGE}^{1.1}}{0.086^{1.1} + \text{AGE}^{1.1}} & 0 < \text{AGE} \le 1 \\ \max\!\left(1.0, \; 1.243 - 0.833 \exp(0.2(\text{AGE} - 25))\right) & 1 < \text{AGE} \le 20 \\ 1.0 & \text{AGE} > 20 \end{cases}$$
+3. **`simcyp_s1` (Simcyp standaard / Jo et al. 2021 scenario 1):**
+   $$\text{MAT}(\text{AGE}) = \begin{cases} 0.086 + \dfrac{(1.041 - 0.086) \cdot \text{AGE}^{1.2}}{1.16^{1.2} + \text{AGE}^{1.2}} & 0 \le \text{AGE} \le 15 \\ 1.0 & \text{AGE} > 15 \end{cases}$$
+
+### 3.7 Typische individuele PK-parameters (`individual_params()`)
+
+$$CL_{\text{tv}} = \text{fu\_ratio} \cdot \left[5.44 \cdot \text{MAT} \cdot F_{\text{size},CL} + 15.78 \cdot \text{MAT} \cdot F_{\text{size},CL} \cdot \text{RF} + 0.011 \cdot \text{eGFR} \cdot \left(\frac{\text{BSA}}{2.0}\right)\right]$$
+
+$$V_{2,\text{tv}} = 73.47 \cdot F_{\text{size},V_2}, \qquad V_{3,\text{tv}} = 168.5 \cdot \left(\frac{\text{BWT}}{84.0}\right) \cdot \text{fu\_ratio}, \qquad Q_{\text{tv}} = 9.137 \cdot F_{\text{size},CL}$$
+
+$$K_{a,\text{tv}} = 2.833 \cdot \left(0.45 + 0.55 \cdot \frac{\text{AGE}}{0.10 + \text{AGE}}\right), \qquad \text{ALAG}_1 = 0.5\text{ h}$$
+
+---
+
+## 4. Stochastische variabiliteit (`IIV` en `IOV`)
+
+- **Inter-individuele variabiliteit (`IIV`, log-normaal):**
+  $$CL_i = CL_{\text{tv},i} \exp(\eta_{2,i}), \quad \eta_{2,i} \sim \mathcal{N}(0, 0.1136)$$
+  $$V_{3,i} = V_{3,\text{tv},i} \exp(\eta_{3,i}), \quad \eta_{3,i} \sim \mathcal{N}(0, 0.8229)$$
+  $$K_{a,i} = \min\!\left(50, \; \max\!\left(0.02, \; K_{a,\text{tv},i} \exp(\eta_{1,i})\right)\right), \quad \eta_{1,i} \sim \mathcal{N}(0, \omega^2_{Ka})$$
+  met \(\omega^2_{Ka} = 0.36\) (`calibrated`, standaard), \(8.52\) (`penland_raw`), of \(0\) (`none`). Geen `IIV` op \(V_2\) en \(Q\).
+- **Inter-occasion variabiliteit (`IOV` op relatieve biologische beschikbaarheid `F1`):**
+  Voor opgegeven `iov_cv` (`%CV`) geldt \(\sigma_{\text{IOV}} = \sqrt{\ln\!\left(1 + (\text{iov\_cv}/100)^2\right)}\). Per toediening \(d\) wordt een onafhankelijke mean-gecentreerde multiplier getrokken zodat \(\mathbb{E}[F_{1,i,d}] = 1.0\):
+  $$F_{1,i,d} = \exp(\kappa_{i,d}), \qquad \kappa_{i,d} \sim \mathcal{N}\!\left(-\tfrac{1}{2}\sigma_{\text{IOV}}^2, \; \sigma_{\text{IOV}}^2\right), \qquad D_{i,d} = 1000 \cdot \text{DOSE\_MG}_i \cdot F_{1,i,d}\text{ (µg)}$$
+- **Residuele fout (`$SIGMA / EPS`)** wordt bewust **niet** gesimuleerd zodat de 90%-band het zuivere populatie-predictie-interval (`P5–P95`) over individuen weergeeft.
+
+---
+
+## 5. Exacte analytische `ADVAN4`-oplossing, steady state & metrieken
+
+Voor elk individu zijn \(k_e = CL_i / V_{2,i}\), \(k_{12} = Q_i / V_{2,i}\), \(k_{21} = Q_i / V_{3,i}\) en \(S = k_e + k_{12} + k_{21}\):
+
+$$\alpha, \beta = \frac{S \pm \sqrt{S^2 - 4 k_e k_{21}}}{2} \quad (\alpha > \beta > 0)$$
+
+*(Numerieke singulariteitsguard: indien \(|K_{a,i} - \alpha| < 10^{-5}\) of \(|K_{a,i} - \beta| < 10^{-5}\), wordt \(K_{a,i}\) met \(+2\times 10^{-5}\) verschoven.)*
+
+Definieer \(c_a = \frac{1}{(\alpha - K_a)(\beta - K_a)}\), \(c_1 = \frac{1}{(K_a - \alpha)(\beta - \alpha)}\), \(c_2 = \frac{1}{(K_a - \beta)(\alpha - \beta)}\). De exacte toestandspropagator \(\mathbf{A}(t) = \Phi(t)\mathbf{A}(0)\) over elk bolusvrij tijdsinterval \(t \ge 0\) heeft niet-nul elementen (\(E_a = e^{-K_a t}\), \(E_\alpha = e^{-\alpha t}\), \(E_\beta = e^{-\beta t}\)):
+
+$$\Phi_{11}(t) = E_a$$
+$$\Phi_{21}(t) = K_a\left[(k_{21} - K_a)c_a E_a + (k_{21} - \alpha)c_1 E_\alpha + (k_{21} - \beta)c_2 E_\beta\right]$$
+$$\Phi_{31}(t) = K_a k_{12}\left(c_a E_a + c_1 E_\alpha + c_2 E_\beta\right)$$
+$$\Phi_{22}(t) = \frac{(\alpha - k_{21})E_\alpha + (k_{21} - \beta)E_\beta}{\alpha - \beta}, \qquad \Phi_{23}(t) = \frac{k_{21}(E_\beta - E_\alpha)}{\alpha - \beta}$$
+$$\Phi_{32}(t) = \frac{k_{12}(E_\beta - E_\alpha)}{\alpha - \beta}, \qquad \Phi_{33}(t) = \frac{(k_{21} - \beta)E_\alpha + (\alpha - k_{21})E_\beta}{\alpha - \beta}$$
+
+- **Toestandsverloop binnen doseringsinterval \([0, \tau]\) met lagtijd \(t_{\text{lag}} = 0.5\text{ h}\) (\(\tau > t_{\text{lag}}\)):**
+  $$\mathbf{A}(t) = \Phi(t)\mathbf{A}(0) + \mathbb{I}(t > t_{\text{lag}}) D_d \begin{pmatrix} \Phi_{11}(t - t_{\text{lag}}) \\ \Phi_{21}(t - t_{\text{lag}}) \\ \Phi_{31}(t - t_{\text{lag}}) \end{pmatrix}$$
+- **Directe analytische steady state (bij `steady_state = TRUE` en `IOV = 0%`):**
+  Uit \(\mathbf{A}_{ss}(0) = \Phi(\tau)\mathbf{A}_{ss}(0) + D\boldsymbol{\phi}_1(\tau - t_{\text{lag}})\) volgt direct:
+  $$A_{1,ss}(0) = \frac{D\Phi_{11}(\tau - t_{\text{lag}})}{1 - \Phi_{11}(\tau)}, \qquad \begin{pmatrix} 1 - \Phi_{22}(\tau) & -\Phi_{23}(\tau) \\ -\Phi_{32}(\tau) & 1 - \Phi_{33}(\tau) \end{pmatrix} \begin{pmatrix} A_{2,ss}(0) \\ A_{3,ss}(0) \end{pmatrix} = \begin{pmatrix} D\Phi_{21}(\tau - t_{\text{lag}}) + \Phi_{21}(\tau)A_{1,ss}(0) \\ D\Phi_{31}(\tau - t_{\text{lag}}) + \Phi_{31}(\tau)A_{1,ss}(0) \end{pmatrix}$$
+- **Expositiemetrieken per individu:**
+  - **Exacte massabalans-`AUCtau`:** \(\text{AUC}_\tau = \dfrac{(A_1(0) + A_2(0) + A_3(0) + D_{\text{last}}) - (A_1(\tau) + A_2(\tau) + A_3(\tau))}{CL}\)
+  - **Ongebonden `AUCu,ss`:** \(\text{AUC}_u = f_u(\text{AGE}) \cdot \text{AUC}_\tau\)
+  - **`Cavg` / `Cavgu`:** \(\text{AUC}_\tau / \tau\) en \(\text{AUC}_u / \tau\)
+  - **`Cmax` en `Tmax`:** bepaald op het `0.1 h` uitvoerrooster en lokaal verfijnd op `0.01 h` resolutie in \([t_{\text{grid,max}} - 0.1, \; t_{\text{grid,max}} + 0.1]\)
+  - **`Cmin`:** dalspiegel \(C(\tau) = A_2(\tau) / V_2\)
+  - **Terminale halfwaardetijd:** \(t_{1/2,\beta} = \ln(2) / \beta\)
+
+---
+
+## 6. Zelfstandig R-referentieblok voor directe reproductie
+
+Onderstaande minimalistische R-functie bevat exact alle formules uit §2–§5 zonder externe
+pakketafhankelijkheden en reproduceert voor elk individu exact dezelfde PK-parameters en
+concentratie-tijdcurve als `dapapksim`:
+
+```r
+dapapksim_reproduce_one <- function(age, bwt, height_m, sex_male = 1, egfr = NULL, creat_umol = NULL,
+                                    dose_mg = 10, tau = 24, mat_option = "farhan2024") {
+  bmi <- bwt / (height_m^2)
+  bsa <- sqrt((height_m * 100 * bwt) / 3600)
+  ffm_ad <- if (sex_male == 1) 9270 * bwt / (6680 + 216 * bmi) else 9270 * bwt / (8780 + 244 * bmi)
+  m_ffm  <- if (age >= 18) 1 else if (sex_male == 1) {
+    if (age <= 0) 0.88 else 0.88 + 0.12 / (1 + (age / 13.4)^(-12.7))
+  } else {
+    if (age <= 0) 1.11 else 1.11 - 0.11 / (1 + (age / 7.1)^(-1.1))
+  }
+  ffm <- min(ffm_ad * m_ffm, 0.97 * bwt)
+  f_size_cl <- ((ffm + 0.25 * (bwt - ffm)) / 63.08)^0.75
+  f_size_v2 <- (ffm + 0.20 * (bwt - ffm)) / 61.68
+
+  alb <- if (age >= 18) 44 else min(44, 1.1287 * log(max(1, age * 365.25)) + 33.746)
+  fu  <- 1 / (1 + (alb / 44) * ((1 - 0.086) / 0.086))
+  fu_ratio <- fu / 0.086
+
+  ga   <- if (age < 0.1 && bwt < 2.5) min(40, max(24, 22 + 7.2 * bwt)) else 40
+  pma  <- ga + 52.1775 * max(age, 0)
+  ngfr <- 115.0 * (pma^3.4 / (47.7^3.4 + pma^3.4)) * (0.9925^max(0, age - 35))
+  if (is.null(egfr)) {
+    if (!is.null(creat_umol) && age >= 1) {
+      scr <- max(creat_umol / 88.4, 0.05)
+      egfr <- if (age >= 18) {
+        kap <- if (sex_male == 1) 0.9 else 0.7; alp <- if (sex_male == 1) -0.302 else -0.241
+        142 * min(scr / kap, 1)^alp * max(scr / kap, 1)^(-1.2) * 0.9938^age * (if (sex_male == 1) 1 else 1.012)
+      } else {
+        k <- if (sex_male == 1) (if (age < 12) 39.0 * 1.008^(age - 12) else 39.0 * 1.045^(age - 12))
+             else               (if (age < 12) 36.1 * 1.008^(age - 12) else 36.1 * 1.023^(age - 12))
+        k * height_m / scr
+      }
+      egfr <- min(max(egfr, 5), 180)
+    } else egfr <- min(max(ngfr, 5), 180)
+  }
+  rf <- min(max(egfr / max(ngfr, 1.0), 0), 1.75)
+
+  mat <- switch(mat_option,
+    farhan2024 = 0.05 + 0.95 * age^1.9 / (0.09^1.9 + age^1.9),
+    badee2019  = if (age <= 0) 0 else if (age <= 1) 1.305 * age^1.1 / (0.086^1.1 + age^1.1)
+                 else if (age <= 20) max(1.0, 1.243 - 0.833 * exp(0.2 * (age - 25))) else 1.0,
+    simcyp_s1  = if (age <= 15) 0.086 + (1.041 - 0.086) * age^1.2 / (1.16^1.2 + age^1.2) else 1.0
+  )
+
+  CL <- fu_ratio * (5.44 * mat * f_size_cl + 15.78 * mat * f_size_cl * rf + 0.011 * egfr * (bsa / 2.0))
+  V2 <- 73.47 * f_size_v2
+  V3 <- 168.5 * (bwt / 84.0) * fu_ratio
+  Q  <- 9.137 * f_size_cl
+  KA <- 2.833 * (0.45 + 0.55 * age / (0.10 + age))
+  list(CL = CL, V2 = V2, V3 = V3, Q = Q, KA = KA, FU = fu, AUC_ss = (dose_mg * 1000) / CL,
+       AUCu_ss = fu * (dose_mg * 1000) / CL)
+}
 ```
-CL_ren = 0.177 × EGFR × (BSA / 2)      # = 0.177 × (absoluut GFR) × 1.73/2
-```
 
-Aanname: in de bronpopulatie (Penland 2023) was BSA ≈ 2 m² (mediaan 84 kg). Omdat
-**absolute renale klaring met BSA schaalt**, is in kleine kinderen (laag BSA) de renale
-klaring lager dan eGFR-per-1.73m² alleen suggereert. Zonder deze schaling was de
-blootstelling bij jonge kinderen te laag vs de PBPK-bron (Jo 2021) — zie
-`docs/VALIDATION_REPORT.md` §3.3/§4.3. Bij volwassenen (BSA ≈ 2 m²) is de factor ≈ 1, dus
-het anker CL(90) = 21.6 L/h blijft valide.
+---
 
-**Guard (eenheid mL/min/1.73m²):** `egfr_from_copula()` checkt dat alle EGFR-waarden in het
-plausibele bereik 5–300 mL/min/1.73m² liggen; het resultaat staat in het tabblad
-"Virtuele populate" ("eGFR-eenheid: … sanity-check OK").
+## 7. Bronnen
 
-## Covariaten uit de virtuele populatie
+1. Penland RC et al. *J Clin Pharmacol* 2023;63:551–559 — [doi:10.1002/jcph.2196](https://doi.org/10.1002/jcph.2196).
+2. Al-Sallami HS et al. *Clin Pharmacokinet* 2015;54:1197–1208 — [doi:10.1007/s40262-015-0285-z](https://doi.org/10.1007/s40262-015-0285-z).
+3. Janmahasatian S et al. *Clin Pharmacokinet* 2005;44:1051–1065 — [doi:10.2165/00003088-200544100-00004](https://doi.org/10.2165/00003088-200544100-00004).
+4. Anderson BJ, Holford NHG. *Annu Rev Pharmacol Toxicol* 2008;48:303–332 (Normal Fat Mass).
+5. McNamara PJ, Alcorn J. *AAPS PharmSci* 2002;4:E4 — [doi:10.1208/ps040104](https://doi.org/10.1208/ps040104).
+6. Rhodin MM et al. *Pediatr Nephrol* 2009;24:67–76 — [doi:10.1007/s00467-008-0997-5](https://doi.org/10.1007/s00467-008-0997-5).
+7. Pierce CB et al. *Kidney Int* 2021;99:948–956 — [doi:10.1016/j.kint.2020.10.047](https://doi.org/10.1016/j.kint.2020.10.047) (CKiD U25).
+8. Inker LA et al. *N Engl J Med* 2021;385:1737–1749 (CKD-EPI 2021).
+9. Farhan H et al. *J Clin Pharmacol* 2024;64:1224 — [doi:10.1002/jcph.2484](https://doi.org/10.1002/jcph.2484).
+10. Jo H et al. *CPT Pharmacometrics Syst Pharmacol* 2021;10:108–118 — [doi:10.1002/psp4.12577](https://doi.org/10.1002/psp4.12577).
+11. Tirucherai GS et al. *Diabetes Obes Metab* 2016;18:678–684 — [doi:10.1111/dom.12638](https://doi.org/10.1111/dom.12638).
+12. Kasichayanula S et al. *Clin Pharmacokinet* 2014;53:17–27 — [doi:10.1007/s40262-013-0104-3](https://doi.org/10.1007/s40262-013-0104-3).
+13. Zwep LHM et al. *Clin Pharmacol Ther* 2024;115:795–804 — [doi:10.1002/cpt.3099](https://doi.org/10.1002/cpt.3099) (`copulapop`).
 
-- **BWT** = `WEIGHT` (kg) — allometrische referent 84 kg.
-- **AGE** = `AGE` (jaar) — maturatie van niet-renale CL.
-- **SEX** = `SEXISMALE` (1 = jongen, 0 = meisje) — alleen gebruikt in de eGFR-formules (via copulapop); niet meer in CL.
-- **EGFR** = `EGFR` (mL/min/1.73m²) — zie boven.
-- **BSA** = `BSA` (m², Mosteller via copulapop) — schaalt de renale component van CL (BSA/2).
+## 8. Beperkingen
 
-## Steady state & metrieken
-
-Dosis per gift = mg/kg × BWT (dit is de **keerdosis per toediening**, geen dagdosis); dosisinterval τ instelbaar in de app (0–24 h, stap 1 h, standaard 24 h; τ = 0 wordt afgevangen met een foutmelding). Random seed instelbaar in de app (standaard 42).
-Na `n_doses` doses geldt het laatste interval als steady state. Per kind: **Cmax,ss**,
-**Tmax**, **Cmin,ss (= C(τ))**, **AUCtau,ss** (trapeziumregel 0–τ), **Cavg,ss = AUCtau/τ**. In de app-tabel per metriek ook het **geometrisch gemiddelde** (naast mediaan en P5–P95).
-In het tabblad "AUC & Cmax vs nierfunctie / leeftijd" worden AUCtau,ss en Cmax,ss
-geplot vs eGFR en vs leeftijd met een LOESS-trendlijn.
-
-## Verschillen t.o.v. het bronmodel (Penland 2023) — en waarom
-
-- **BSA-schaling van de renale component (aanpassing)**: `CL_ren = 0.177 × EGFR × (BSA/2)`, met BSA_ref = 2 m² als aanname voor de bronpopulatie (Penland: mediaan 84 kg, BSA ≈ 2 m²). daarmee blijft het model geankerd op de originele populatie (volwassen, BSA ≈ 2 m² → factor ≈ 1), terwijl bij kinderen met laag BSA de renale klaring relatief lager wordt — precies het verschil dat anders tot een te lage blootstelling vs PBPK leidde (Jo 2021). Zie `docs/VALIDATION_REPORT.md` §3.3.
-- **eGFR-vergelijking**: het artikel gebruikte CKD-EPI **2009**; copulapop gebruikt CKD-EPI
-  **2021** (≥18 j) en bedside Schwartz (<18 j). Het artikel rapporteert dat de overstap
-  2009→2021 "minimal impact" had op de parameterschattingen.
-- **eGFR-effect op CL**: in het artikel een machtsfunctie `(eGFR/eGFR_REF)^0.6374`; hier de
-  lineaire split `CL = 5.44 + 0.177·eGFR` (afgeleid uit Tabel S4, R² = 0.9985 — zie
-  `docs/HANDOVER_renale_CL_UGT1A9_maturatie.md`). Gevalideerd in `VALIDATION.md`
-  (AUC-ratio's per eGFR-stratum iets vlakker dan in het artikel).
-- **Maturatiefunctie (UGT1A9)** — welke, hoe, waarom:
-  - *Functie*: Hill-functie `MAT(AGE) = Fbirth + (1 − Fbirth)·AGE^n / (Age50^n + AGE^n)`
-    = `0.05 + 0.95·AGE^1.9 / (0.09^1.9 + AGE^1.9)` (AGE in jaren; THETA 10–12).
-    Waarden: 0 j → 0,05; 0,09 j (Age50) → 0,525; 0,5 j → 0,965; ≥ ~2 j → ≈ 1.
-  - *Implementatie*: alleen op de **niet-renale** klaring, als pure leeftijdsfactor los van
-    allometrie — `CLnr = 5.44 · MAT(AGE) · (BWT/84)^0.75` (in de app: `individual_params()` in
-    `R/pk_model.R`). De renale component schaalt via eGFR, die bij kinderen al
-    leeftijd/size-gecorrigeerd is (bedside Schwartz).
-  - *Waarom*: Farhan et al. 2024 (doi:10.1002/jcph.2484, Table 1, **in-vivo** UGT1A9 via
-    propofol-CL): Fbirth = 0.05, Age50 = 0.09 jaar, n = 1.9 (AdultMax = 1.1 is genormaliseerd
-    naar 1 omdat adult-CLnr hier het referentiepunt is). De in-vivo activity-based
-    ontogeny gaf de beste PBPK-voorspelling (MSE 0.05 vs 0.104/0.129 in-vitro). Miyagi 2012
-    (exponentieel, 90% plateau op ~4 maanden) komt hiermee overeen: UGT1A9 is praktisch
-    volwassen binnen ~1 jaar. De abundance-curve (Age50 8.2 j) is een outlier en niet bruikbaar
-    voor klaring.
-  - *Identificeerbaarheid*: de pediatrische brondata betroffen 11–17 jaar (MAT = 1 voor alle
-    subjecten), dus THETA 10–12 zijn **gefixeerd uit de literatuur**, niet schatbaar uit de
-    data; het maturatie-effect is alleen zichtbaar bij extrapolatie < ~2 jaar.
-- **IOV op F1** is een extensie t.o.v. het NONMEM-model. De getoonde steady-state curve is het
-  **laatste doseringsinterval** en reflecteert per kind één F1-trekking; de 90% band bevat
-  daarmee óók de occasion-to-occasion spreiding van die laatste dosis.
-- **Sex-effect op CL/F (THETA(7) = −0.1441) verwijderd**: in het bronmodel correleerde dit met lichaamsgrootte; nu alle parameters allometrisch geschaald worden op (BWT/84), is dat effect niet meer nodig. Het effect was klein (~1.0–1.17× AUC) en volgens het artikel niet klinisch relevant.
-- **ALAG1 = 0.5 h** is een placeholder (lagtijd niet gepubliceerd in het artikel).
-
-## Verificatie tegen Penland et al. 2023 (doi:10.1002/jcph.2196)
-
-Simulatie met typische waarden (ETA = 0, geen IOV), 10 mg 1×/dag, 7 doses (steady state),
-met de mediaan-covariaten uit Table 1 van het artikel. Vergelijking met de gerapporteerde
-model-predicted waarden:
-
-| Scenario | Gesimuleerd | Gerapporteerd (Penland 2023) |
-|---|---|---|
-| CL/F referentie (84 kg, eGFR 90, man) | 21,4 L/h | 21,6 L/h (populatie CL/F) |
-| AUC gen. naar 10 mg — adult T2DM znd CKD (90 kg, eGFR 90) | 461 ng·h/mL | 464 ng·h/mL |
-| AUC gen. naar 10 mg — DAPA-CKD +T2DM (81 kg, eGFR 42) | 783 ng·h/mL | 757 ng·h/mL |
-| AUC gen. naar 10 mg — DAPA-CKD −T2DM (78 kg, eGFR 40) | 815 ng·h/mL | 778 ng·h/mL |
-| AUC-ratio vs eGFR ≥90 — eGFR 45–59 | 1,46× | 1,6× |
-| AUC-ratio vs eGFR ≥90 — eGFR 30–44 | 1,78× | 2,0× |
-| AUC-ratio vs eGFR ≥90 — eGFR 15–29 | 2,27× | 2,4× |
-| Cmax na 10 mg (84 kg, eGFR 90–100, man) | 100–102 ng/mL | ~100 ng/mL (model-Cmax-cutoff) |
-| Tmax na 10 mg | 1,3 h | tmax ~1–2 h; dalen gemeten 20–32 h na dosis |
-| Pediatrisch T2DM (15 j, 94 kg, eGFR 110), 10 mg | AUC 393 ng·h/mL, Cmax 90 ng/mL | eGFR ≥90-groep pediatrisch: hoogste eGFR, dus laagste AUC |
-
-Conclusie: CL/F, AUC (per 10 mg) en Cmax komen binnen enkele procenten overeen met de
-gepubliceerde model-predicted waarden. Kleine afwijkingen zijn te verwachten:
-
-- de lineaire renale split (`0.177·EGFR`) geeft iets vlakkere eGFR-band-ratio's dan de
-  power-functie op eGFR in het artikel;
-- de allometrische schaling op CLnr (gewenste aanpassing) maakt het gewichtseffect op AUC
-  kleiner (1,06× bij 60 vs 85 kg) dan in het artikel (1,2×; daar staat BWT alleen op Vc/F);
-- het geslachts­effect is 1,17× (θ7 = −0,1441) vs ~1,0× in het artikel (niet klinisch relevant).
-
-## Bronnen
-
-- Penland RC et al. J Clin Pharmacol 2023;63:551–559 — doi:10.1002/jcph.2196 (basismodel, 2-compartment + lagtijd; CL/F ≈ 21.6 L/h in CKD-populatie).
-- Farhan H et al. 2024 — doi:10.1002/jcph.2484 (UGT1A9-ontogenie: TM50 = 0.09 j, Hill = 1.9, Fbirth = 0.05).
-- Tirucherai GS et al. Diabetes Obes Metab 2016;18:678–684 (PK 10–17 jaar vergelijkbaar met volwassenen).
-- Zwep LHM et al. Clin Pharmacol Ther 2024;115:795–804 — rationale copulapop (doi:10.1002/cpt.3099).
-- [copulapop](https://github.com/Robterheine/copulapop) — virtuele populaties (vine-copulas).
-
-## Beperkingen
-
-- Vereenvoudiging: IOV op F1 is een extensie (zit niet in het NONMEM model); residuele
-  fout niet gesimuleerd; Ka-BSV geclamped voor numerieke stabiliteit.
-- Virtuele populaties zijn algemene-bevolkings-/ziekenhuispopulaties, geen T2DM-patiënten.
-- Educatief/visualisatiemodel — geen doseringsadvies.
+- Extrapolatie onder ~1 jaar berust op mechanistische fysiologische ontogenie (UGT1A9, GFR,
+  albumine, GI-absorptie) en PBPK-verificatie; gepubliceerde klinische PK-data van dapagliflozine
+  bij neonaten en jonge zuigelingen zijn nog beperkt.
+- Virtuele `copulapop`-populaties representeren algemene of ziekenhuispopulaties, geen
+  specifieke T2DM- of hartfalencohorten.
+- Onderzoeks- en educatief simulatiemodel — geen gevalideerd klinisch doseringsadvies.
