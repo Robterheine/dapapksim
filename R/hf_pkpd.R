@@ -267,13 +267,13 @@ compare_ontogeny_dosing <- function(pop,
     p_hi  <- 100 * mean(aucu_cur > safety_max)
 
     rows[[k]] <- data.frame(
-      `Rijpingsmodel (UGT1A9)`          = mat_lbls[[mk]],
-      `Rijpingsfactor (MAT)`            = sprintf("%.0f%%", 100 * stats::median(pk$MAT, na.rm = TRUE)),
-      `Vrije blootstelling huidige dosis [P5-P95]` = sprintf("%.1f [%.1f - %.1f]", q_med, q_05, q_95),
-      `In venster (%)`                  = sprintf("%.0f%%", p_in),
-      `Boven plafond (%)`               = sprintf("%.0f%%", p_hi),
-      `Veilige startdosis (~5 mg-eq)`   = sprintf("%.2f mg/kg (%.2f mg)", d_start_mgkg, d_start_mg),
-      `Streefdosis (~10 mg-eq)`         = sprintf("%.2f mg/kg (%.2f mg)", d_target_mgkg, d_target_mg),
+      `UGT1A9-ontogeniemodel`         = mat_lbls[[mk]],
+      `Mediane MAT`                   = sprintf("%.2f", stats::median(pk$MAT, na.rm = TRUE)),
+      `AUCu,24h,ss huidige dosis [P5-P95]` = sprintf("%.1f [%.1f - %.1f]", q_med, q_05, q_95),
+      `PTA streefvenster`             = sprintf("%.0f%%", p_in),
+      `> Veiligheidsplafond`          = sprintf("%.0f%%", p_hi),
+      `Startdosis (~5 mg-eq)`         = sprintf("%.2f mg/kg (%.2f mg)", d_start_mgkg, d_start_mg),
+      `Streefdosis (~10 mg-eq)`       = sprintf("%.2f mg/kg (%.2f mg)", d_target_mgkg, d_target_mg),
       check.names = FALSE,
       stringsAsFactors = FALSE
     )
@@ -289,7 +289,7 @@ compare_ontogeny_dosing <- function(pop,
     )
   }
 
-  # Beknopte, begrijpelijke aandachtspunten op maat van de gesimuleerde kindergroep
+  # Beknopte klinisch-farmacologische aandachtspunten op maat van het gesimuleerde cohort
   min_age    <- min(pop$AGE, na.rm = TRUE)
   max_age    <- max(pop$AGE, na.rm = TRUE)
   med_age    <- stats::median(pop$AGE, na.rm = TRUE)
@@ -299,38 +299,38 @@ compare_ontogeny_dosing <- function(pop,
   alerts <- list()
   if (min_age < 0.8 && (max_age - min_age) > 1.2) {
     alerts[[length(alerts) + 1L]] <- list(
-      lead = "Kies bij baby's een smaller leeftijdsvenster:",
-      body = sprintf("Tussen 0 en 12 maanden rijpen lever en nieren razendsnel. Splits een brede selectie (nu %.2f–%.2f jaar) liever op in losse stapjes (bv. 0.08–0.25 j, 0.25–0.5 j en 0.5–1 j).", min_age, max_age)
+      lead = "Heterogeen leeftijdsstratum over het eerste levensjaar:",
+      body = sprintf("Tussen 0 en 12 maanden nemen zowel UGT1A9-activiteit als GFR niet-lineair toe. Stratificeer de huidige selectie (%.2f–%.2f jaar) bij voorkeur in smalle subcohorten (bv. 0.08–0.25, 0.25–0.5 en 0.5–1 jaar).", min_age, max_age)
     )
   }
   if (ont_ratio >= 1.5) {
     alerts[[length(alerts) + 1L]] <- list(
-      lead = sprintf("Grote onzekerheid in enzymrijping (%.1fx verschil):", ont_ratio),
-      body = sprintf("Bij jonge zuigelingen lopen de rijpingsmodellen sterk uiteen. Start daarom voorzichtig op %.2f mg/kg/dag en verhoog alleen stap voor stap op geleide van tolerantie.", min(start_mgkg_vec))
+      lead = sprintf("Divergentie in UGT1A9-ontogenie (factor %.1fx):", ont_ratio),
+      body = sprintf("Onder 6–12 maanden wijken snelle in-vivo rijping (Farhan 2024) en conservatieve PBPK-ontogenie (Simcyp s1) substantieel uiteen. Initieer bij voorkeur op de conservatieve startdosis (%.2f mg/kg/dag) met stapsgewijze optitratie op geleide van klinische tolerantie.", min(start_mgkg_vec))
     )
   }
   if (min_age < 2.0) {
     alerts[[length(alerts) + 1L]] <- list(
-      lead = "Pauzeer bij ziekte of slecht drinken ('sick-day rules'):",
-      body = "Jonge kinderen (< 2 jaar) hebben een kleine suikervoorraad; stop dapagliflozine tijdelijk bij braken, diarree, koorts of vasten om lage bloedsuiker, ketose en uitdroging te voorkomen."
+      lead = "Nauwere metabole veiligheidsmarge (< 2 jaar, 'sick-day rules'):",
+      body = "Door beperkte hepatische glycogeenreserves kan SGLT2-geïnduceerde normoglykemische glucosurie bij intercurrent vasten, braken of gastro-enteritis leiden tot hypoglykemie en euglykemische ketoacidose; onderbreek toediening tijdelijk bij verminderde enterale intake."
     )
   }
   if (st$rf_factor < 0.85 || med_age < 0.25) {
     alerts[[length(alerts) + 1L]] <- list(
-      lead = "Verhoog de dosis NIET om meer plasproductie af te dwingen:",
-      body = "Bij een trage nierfunctie stijgt de bloedspiegel, terwijl het vochtafdrijvende effect achterblijft doordat er minder vocht door het nierfilter spoelt. Controleer nierfunctie en lisdiuretica."
+      lead = "PK–PD dissociatie bij verlaagde GFR (geen opwaartse diuretische titratie):",
+      body = "Bij onrijpe neonatale nefronen of cardiorenaal syndroom neemt AUCu,24h toe terwijl de natriuretische respons begrensd wordt door de verlaagde gefiltreerde solute-vracht (luminale SGLT2-bezetting ligt al > 80–90%). Bewaak op prerenale AKI bij gelijktijdig gebruik van lisdiuretica en RAS-remmers."
     )
   }
   if (!is.na(st$alb_override) && st$alb_override < 34) {
     alerts[[length(alerts) + 1L]] <- list(
-      lead = sprintf("Laag albumine (%g g/L) geeft schijnbaar lage totaalspiegels:", st$alb_override),
-      body = "Bij laag albumine daalt de totale bloedspiegel, maar blijft de vrije werkzame hoeveelheid gelijk. Hoog de dosis dus nooit op vanwege een lage totale bloedspiegel."
+      lead = sprintf("Hypoalbuminemie ([Alb] = %g g/L) — interpretatie van TDM-spiegels:", st$alb_override),
+      body = "Een verhoogde vrije fractie fu verhoogt voor dit laag-extractiefarmacon de totale CL/F en verlaagt totale plasmaconcentraties C(t), terwijl de farmacologisch actieve ongebonden blootstelling (AUCu,24h) ongewijzigd blijft."
     )
   }
   if (st$edema_pct > 0) {
     alerts[[length(alerts) + 1L]] <- list(
-      lead = sprintf("Doseer op drooggewicht (niet op +%g%% vocht):", st$edema_pct),
-      body = sprintf("Oedeemvocht breekt geen medicijn af; reken met het geschatte drooggewicht (mediaan %.1f kg i.p.v. %.1f kg).", med_wt_dry, stats::median(pop$WEIGHT, na.rm = TRUE))
+      lead = sprintf("Extracellulaire overvulling (+%g%%) — doseer op euvolemisch drooggewicht:", st$edema_pct),
+      body = sprintf("Interstitieel oedeem vergroot het verdelingsvolume maar draagt niet bij aan hepatische of renale UGT1A9-capaciteit; baseer mg/kg-dosering op het geschatte drooggewicht (mediaan %.1f kg vs. %.1f kg actueel).", med_wt_dry, stats::median(pop$WEIGHT, na.rm = TRUE))
     )
   }
 
@@ -456,8 +456,8 @@ generate_pediatric_hf_regimen_table <- function(rf_factor = 1.0,
 }
 
 # Visuele liniaal van het therapeutisch venster: laat in één oogopslag zien waar de
-# grenzen (20, 75 en 90 ng*u/mL) vandaan komen uit volwassen studies én waar de
-# nu gesimuleerde kindergroep op deze schaal valt.
+# grenzen (20, 75 en 90 ng*h/mL) vandaan komen uit volwassen studies én waar het
+# gesimuleerde kindercohort op deze schaal valt.
 build_window_explainer_plot <- function(s, tg, ont) {
   st  <- s$res$settings
   qdf <- ont$quant_df
@@ -465,9 +465,9 @@ build_window_explainer_plot <- function(s, tg, ont) {
   chosen_key <- st$mat_option
   alt_key    <- if (identical(chosen_key, "simcyp_s1")) "farhan2024" else "simcyp_s1"
   short_map  <- c(
-    farhan2024 = "Farhan 2024 (snelle rijping)",
+    farhan2024 = "Farhan 2024 (in-vivo UGT1A9)",
     badee2019  = "Badee 2019 (PBPK s2)",
-    simcyp_s1  = "Simcyp s1 (voorzichtige rijping)"
+    simcyp_s1  = "Simcyp s1 (conservatief)"
   )
 
   q_main <- qdf[qdf$key == chosen_key, , drop = FALSE]
@@ -476,12 +476,12 @@ build_window_explainer_plot <- function(s, tg, ont) {
   bars <- data.frame(
     y = c(6, 5, 4, 3, 2, 1),
     groep = c(
-      sprintf("Jouw simulatie — %s", short_map[[chosen_key]]),
-      sprintf("Jouw simulatie — %s", short_map[[alt_key]]),
-      "Volwassen 5 mg 1x/dag (lage startdosis, eGFR 90)",
-      "Volwassen 10 mg 1x/dag (gezonde nierfunctie, eGFR >= 90)",
+      sprintf("Gesimuleerd cohort — %s", short_map[[chosen_key]]),
+      sprintf("Gesimuleerd cohort — %s", short_map[[alt_key]]),
+      "Volwassen 5 mg 1x/dag (referentie startdosis, eGFR 90)",
+      "Volwassen 10 mg 1x/dag (normale nierfunctie, eGFR >= 90)",
       "Volwassen 10 mg 1x/dag (DAPA-HF / milde CKD, eGFR 60-89)",
-      "Volwassen 10 mg 1x/dag (ernstige nierschade, eGFR 15-29)"
+      "Volwassen 10 mg 1x/dag (ernstige CKD, eGFR 15-29)"
     ),
     med = c(q_main$med, q_alt$med, 19.2, 38.5, 48.2, 87.7),
     p05 = c(q_main$p05, q_alt$p05, 11.8, 23.7, 29.2, 56.8),
@@ -514,21 +514,22 @@ build_window_explainer_plot <- function(s, tg, ont) {
     geom_vline(xintercept = tg$target_hi, color = "#1a7f37", linetype = "dashed", linewidth = 0.7) +
     geom_vline(xintercept = tg$safety_max, color = "#b2182b", linetype = "dashed", linewidth = 0.85) +
     geom_hline(yintercept = 4.5, color = "#7b8a9b", linetype = "dotted", linewidth = 0.7) +
-    annotate("text", x = z_mid_lo, y = zone_top, label = sprintf("Te laag\n(< %g)", tg$target_lo),
-             size = 3.2, fontface = "bold", color = "#345474", lineheight = 0.95) +
-    annotate("text", x = z_mid_ok, y = zone_top, label = sprintf("Therapeutisch venster\n(%g – %g ng*u/mL)", tg$target_lo, tg$target_hi),
-             size = 3.4, fontface = "bold", color = "#145a2b", lineheight = 0.95) +
+    annotate("text", x = z_mid_lo, y = zone_top, label = sprintf("Subtherap.\n(< %g)", tg$target_lo),
+             size = 3.0, fontface = "bold", color = "#345474", lineheight = 0.95) +
+    annotate("text", x = z_mid_ok, y = zone_top, label = sprintf("Streefvenster DAPA-HF\n(%g – %g ng*h/mL)", tg$target_lo, tg$target_hi),
+             size = 3.3, fontface = "bold", color = "#145a2b", lineheight = 0.95) +
     annotate("text", x = z_mid_hi, y = zone_top, label = sprintf("Hoog\n(%g–%g)", tg$target_hi, tg$safety_max),
              size = 3.0, fontface = "bold", color = "#8a5300", lineheight = 0.95) +
-    annotate("text", x = z_mid_mx, y = zone_top, label = sprintf("Boven plafond\n(> %g)", tg$safety_max),
-             size = 3.2, fontface = "bold", color = "#991b1b", lineheight = 0.95) +
+    annotate("text", x = z_mid_mx, y = zone_top, label = sprintf("> Veiligheidsplafond\n(> %g)", tg$safety_max),
+             size = 3.05, fontface = "bold", color = "#991b1b", lineheight = 0.95) +
     geom_errorbarh(aes(xmin = p05, xmax = p95_plot, color = type, linetype = type),
                    height = 0.22, linewidth = 1.15) +
     geom_point(aes(x = med_plot, color = type, shape = type), size = 3.8) +
     geom_text(aes(x = med_plot, y = y + 0.28, label = lbl, color = type),
               size = 3.2, fontface = "bold") +
-    scale_y_continuous(breaks = bars$y, labels = bars$groep, limits = c(0.4, 7.50)) +
-    scale_x_continuous(limits = c(0, x_max), expand = c(0.01, 0)) +
+    scale_y_continuous(breaks = bars$y, labels = bars$groep) +
+    scale_x_continuous(expand = c(0.01, 0)) +
+    coord_cartesian(xlim = c(0, x_max), ylim = c(0.4, 7.55), clip = "off") +
     scale_color_manual(values = c(
       ped_main = "#08306b",
       ped_alt  = "#35689a",
@@ -554,18 +555,18 @@ build_window_explainer_plot <- function(s, tg, ont) {
       ad_ckd   = 15
     )) +
     labs(
-      title = "Hoe komt het therapeutisch venster tot stand — en waar ligt jouw simulatie?",
-      subtitle = "Balken tonen de 90%-bandbreedte (P5 – P95) en de mediaan van de vrije 24-uurs blootstelling op steady state",
-      x = "Vrije (ongebonden) 24-uurs blootstelling AUCu,24h,ss (ng*u/mL)",
+      title = "Afleiding therapeutisch streefvenster: volwassen referenties vs. gesimuleerd cohort",
+      subtitle = "Mediaan en 90%-predictie-interval [P5 – P95] van steady-state AUCu,24h (Penland et al. 2023 Tabel S4; DAPA-HF)",
+      x = "Ongebonden blootstelling AUCu,24h,ss (ng*h/mL)",
       y = NULL
     ) +
-    theme_minimal(base_size = 12.5) +
+    theme_minimal(base_size = 12) +
     theme(
       plot.title.position = "plot",
-      plot.title = element_text(face = "bold", color = "#08306b", size = 13.5),
-      plot.subtitle = element_text(color = "#3d4f63", size = 11),
-      plot.margin = margin(8, 18, 8, 8),
-      axis.text.y = element_text(face = "bold", color = "#1f2d3d", size = 11),
+      plot.title = element_text(face = "bold", color = "#08306b", size = 12.5),
+      plot.subtitle = element_text(color = "#3d4f63", size = 10.5),
+      plot.margin = margin(8, 20, 8, 8),
+      axis.text.y = element_text(face = "bold", color = "#1f2d3d", size = 10.5),
       panel.grid.major.y = element_blank(),
       panel.grid.minor = element_blank(),
       legend.position = "none"
