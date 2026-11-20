@@ -164,44 +164,100 @@ ui <- fluidPage(
         ),
         tabPanel(
           "Hartfalen: PK/PD & Dosisvoorspelling",
-          h4("Dosisvoorspelling & PK–PD analyse voor pediatrisch hartfalen (op basis van ongebonden AUCu,24h,ss)"),
+          h4("Dosisvoorspelling & PK–PD wijzer voor hartfalen bij kinderen"),
           uiOutput("hf_kpi_cards"),
           uiOutput("hf_alerts_ui"),
-          wellPanel(
-            fluidRow(
-              column(
-                4,
-                numericInput("hf_target_lo", "Ondergrens doelvenster AUCu,24h (ng*h/mL; ~5 mg volw. ref = 20)",
-                             value = 20, min = 5, max = 60, step = 2)
+          div(
+            class = "hf-subtabs",
+            tabsetPanel(
+              id = "hf_inner_tabs",
+              type = "pills",
+              tabPanel(
+                "1. Therapeutisch venster (Waarom 20–75?)",
+                div(
+                  class = "hf-intro-box",
+                  strong("In gewone taal — hoe komen we aan dit streefgebied? "),
+                  "Bij volwassenen met hartfalen (de grote ", strong("DAPA-HF"), " en ", strong("DELIVER"), " studies) krijgt iedereen één vaste dosering: ",
+                  strong("10 mg 1× per dag"), ". Omdat er bij jonge kinderen nog geen grote uitkomststudies zijn, mikken we bij een kind op ",
+                  strong("dezelfde hoeveelheid vrij werkzaam medicijn in het bloed over 24 uur"), " als bij volwassen hartfalenpatiënten.",
+                  tags$br(), tags$br(),
+                  strong("Waarom kijken we naar 'vrije' dapagliflozine (AUCu,24h) en niet naar de totale bloedspiegel? "),
+                  "In het bloed zit ruim 91% van dapagliflozine vastgeplakt aan het eiwit ", strong("albumine"),
+                  ". Alleen de ~9% ", strong("vrije (ongebonden)"), " dapagliflozine kan door het nierfilter spoelen en werken. ",
+                  "Baby's — en kinderen met ernstig hartfalen, stuwing of eiwitverlies — hebben minder albumine in hun bloed. ",
+                  "Daardoor lijkt hun totale bloedspiegel misleidend laag, terwijl de vrije werkzame spiegel al op peil is."
+                ),
+                plotOutput("hf_window_plot", height = "370px"),
+                uiOutput("hf_window_cards_ui"),
+                checkboxInput("show_custom_window", "Pas de grenzen van het therapeutisch venster handmatig aan (voor gevoeligheidsanalyse)", value = FALSE),
+                conditionalPanel(
+                  condition = "input.show_custom_window",
+                  wellPanel(
+                    fluidRow(
+                      column(4, numericInput("hf_target_lo", "Ondergrens venster (ng*u/mL; standaard 20)", value = 20, min = 5, max = 60, step = 2)),
+                      column(4, numericInput("hf_target_hi", "Bovengrens venster (ng*u/mL; standaard 75)", value = 75, min = 30, max = 150, step = 5)),
+                      column(4, numericInput("hf_safety_max", "Veiligheidsplafond (ng*u/mL; standaard 90)", value = 90, min = 50, max = 200, step = 5))
+                    ),
+                    helpText("Wijzigingen hierboven werken alle grafieken en tabellen direct bij zonder de populatiesimulatie opnieuw te hoeven starten.")
+                  )
+                )
               ),
-              column(
-                4,
-                numericInput("hf_target_hi", "Bovengrens doelvenster AUCu,24h (ng*h/mL; DAPA-HF P95 = 75)",
-                             value = 75, min = 30, max = 150, step = 5)
+              tabPanel(
+                "2. Dosiskeuze & Leeftijdstabel (0–18 j)",
+                div(
+                  class = "hf-intro-box",
+                  strong("Hoe lezen we deze pagina? "),
+                  "Links (figuur A) zie je voor de huidige kindergroep bij welke dosering het ",
+                  strong("grootste percentage kinderen binnen het groene therapeutisch venster"), " valt zonder boven het rode veiligheidsplafond uit te schieten. ",
+                  "Rechts (figuur B) zie je hoeveel onzekerheid er bij jonge baby's zit in de ",
+                  strong("rijping van het afbraak-enzym UGT1A9"), ": bij pasgeborenen en jonge zuigelingen (< 6 maanden) verschillen het snelle model (",
+                  em("Farhan 2024"), ") en het voorzichtige model (", em("Simcyp s1"), ") een factor 3 tot 4. Start daar altijd laag en verhoog stap voor stap."
+                ),
+                plotOutput("hf_pta_ontogeny_plot", height = "430px"),
+                h5(strong("Vergelijking voor jouw nu gesimuleerde kindergroep per rijpingsmodel:")),
+                tableOutput("hf_ontogeny_table"),
+                hr(),
+                h4("Praktisch doseeroverzicht van pasgeborene tot 18 jaar"),
+                p("Deze referentietabel rekent elke leeftijdsklasse door met het links gekozen hartfalenprofiel. ",
+                  strong("Waarom hebben peuters per kg méér nodig (~0,20 mg/kg) dan een volwassene (10 mg / 84 kg = 0,12 mg/kg)? "),
+                  "Omdat de lever en nieren van jonge kinderen in verhouding tot hun lichaamsgewicht groter en actiever zijn (allometrische schaling)."),
+                tableOutput("hf_lifespan_table"),
+                downloadButton("dl_hf_regimen", "Download leeftijdsgestratificeerde HF-doseertabel (CSV)")
               ),
-              column(
-                4,
-                numericInput("hf_safety_max", "Veiligheidsplafond AUCu,24h (ng*h/mL; ernstige CKD med. = 90)",
-                             value = 90, min = 50, max = 200, step = 5)
+              tabPanel(
+                "3. PK vs. PD (Werking & Veiligheid bij het kind)",
+                div(
+                  class = "hf-explain-grid-3",
+                  div(
+                    class = "hf-explain-card",
+                    div(class = "hf-explain-title", "1. Twee werkingsroutes in hartfalen"),
+                    p("Dapagliflozine werkt enerzijds ", strong("in het nierbuisje"), " (blokkeert SGLT2 na glomerulaire filtratie → zout- en vochtafdrijving) en anderzijds ",
+                      strong("systemisch via het bloed"), " (gunstig effect op druk in het nierfilter, hartspierstofwisseling en aanmaak van rode bloedcellen).")
+                  ),
+                  div(
+                    class = "hf-explain-card hf-zone-high",
+                    div(class = "hf-explain-title", "2. De valkuil bij trage nieren (PK ≠ PD!)"),
+                    p("Bij een jonge baby of een kind met slechte nierdoorbloeding wordt dapagliflozine trager afgebroken (", strong("bloedspiegel stijgt"), "), maar spoelt er ",
+                      strong("minder zout en suiker door het nierfilter"), ". SGLT2 zit dan al voor ~85–90% vol (", em("plafondeffect"), "), terwijl het plas-effect klein blijft. ",
+                      strong("Hoger doseren voor 'meer diurese' werkt dan niet en geeft alleen overdosering."))
+                  ),
+                  div(
+                    class = "hf-explain-card hf-zone-max",
+                    div(class = "hf-explain-title", "3. Extra veiligheidsrisico's bij het jonge kind"),
+                    p("Zuigelingen en dreumesen (< 2 jaar) hebben een kleine suikervoorraad in de lever en verliezen via de urine suiker en calorieën. ",
+                      strong("Pauzeer direct bij braken, diarree, koorts of slecht drinken ('sick-day rules')"),
+                      " om lage bloedsuiker, ketose en uitdroging (zeker naast furosemide!) te voorkomen.")
+                  )
+                ),
+                plotOutput("hf_pkpd_plot", height = "445px"),
+                helpText("Toelichting bij figuur B (rechts): elke stip is een gesimuleerd kind. Rode/oranje stippen hebben een lage nierfunctie (eGFR): zij hebben wél een hoge vrije bloedspiegel (rechts op de x-as) en volledige systemische respons (zwarte lijnen), maar hun daadwerkelijke vochtafdrijving in het nierbuisje (y-as) blijft laag doordat er weinig filtraat langs SGLT2 stroomt.")
+              ),
+              tabPanel(
+                "4. Onderbouwing aannames & Bronnen",
+                withMathJax(div(class = "md-doc", includeMarkdown("hf_pkpd_rationale.md")))
               )
-            ),
-            helpText("Streefvenster wordt direct toegepast op de chronische steady-state ongebonden 24-uurs blootstelling (AUCu,24h,ss). Volwassen referenties bij 10 mg 1x/dag: mediaan 38.5 ng*h/mL (gezond/T2DM, eGFR 90) en 48.2 ng*h/mL (typische DAPA-HF patiënt, eGFR 66).")
-          ),
-          h4("1. Probability of Target Attainment (PTA) & gevoeligheid voor UGT1A9-ontogenie"),
-          plotOutput("hf_pta_ontogeny_plot", height = "430px"),
-          h5(strong("Vergelijking van voorspelde start- en streefdosering per UGT1A9-maturatiefunctie (op exact dezelfde virtuele populatie):")),
-          tableOutput("hf_ontogeny_table"),
-          hr(),
-          h4("2. Kritische PK–PD relatie: luminale SGLT2-receptorbezetting vs. GFR-gelimiteerde renale respons"),
-          plotOutput("hf_pkpd_plot", height = "440px"),
-          helpText("Links: 24-uurs profiel van proximaal tubulaire SGLT2-remming t.o.v. volwassen DAPA-HF 10 mg en 5 mg referenties. Rechts: de cruciale PK-PD dissociatie bij jonge zuigelingen en cardiorenaal hartfalen — luminale SGLT2-bezetting bereikt snel een plafond (~85-92%), terwijl de daadwerkelijke natriuretische/osmotische tubulaire output begrensd wordt door de lage glomerulaire filtratie (kleurschaal = eGFR)."),
-          hr(),
-          h4("3. Leeftijdsgestratificeerde pediatrische hartfalen-referentietabel (0 mnd – 18 jaar)"),
-          p("Onderstaande tabel berekent per pediatrisch leeftijdsstratum de conservatieve startdosis (~5 mg-eq op langzaamste ontogenie) en het streefdosis-bereik (~10 mg DAPA-HF-eq van Simcyp s1 t/m Farhan 2024, geplafonneerd op 10 mg en P95 <= veiligheidsplafond), rekening houdend met het links ingestelde hartfalenprofiel."),
-          tableOutput("hf_lifespan_table"),
-          downloadButton("dl_hf_regimen", "Download leeftijdsgestratificeerde HF-doseertabel (CSV)"),
-          hr(),
-          withMathJax(div(class = "md-doc", includeMarkdown("hf_pkpd_rationale.md")))
+            )
+          )
         ),
         tabPanel(
           "Expositiemetrieken (PK & PD)",
@@ -690,11 +746,12 @@ server <- function(input, output, session) {
     s   <- sim_res(); req(s)
     pta <- hf_pta_data(); req(pta)
     ont <- hf_ontogeny_data(); req(ont)
+    tg  <- hf_targets_reactive()
     m   <- s$res$metrics
     st  <- s$res$settings
 
-    med_wt <- ont$med_wt_dry
-    start_mg <- min(5.0, ont$start_rec_mgkg * med_wt)
+    med_wt     <- ont$med_wt_dry
+    start_mg   <- min(5.0, ont$start_rec_mgkg * med_wt)
     targ_lo_mg <- min(10.0, ont$target_min_mgkg * med_wt)
     targ_hi_mg <- min(10.0, ont$target_max_mgkg * med_wt)
 
@@ -704,12 +761,24 @@ server <- function(input, output, session) {
       sprintf("%.2f – %.2f mg/kg", ont$target_min_mgkg, ont$target_max_mgkg)
     }
     targ_sub_txt <- if (abs(targ_hi_mg - targ_lo_mg) < 0.08) {
-      sprintf("~%.2f mg per gift (mediaan drooggewicht %.1f kg)", targ_hi_mg, med_wt)
+      sprintf("~%.2f mg per gift bij mediaan drooggewicht (%.1f kg) — volwassen 10 mg DAPA-HF niveau", targ_hi_mg, med_wt)
     } else {
-      sprintf("~%.2f – %.2f mg per gift (Simcyp s1 t/m Farhan 2024)", targ_lo_mg, targ_hi_mg)
+      sprintf("~%.2f – %.2f mg per gift (afhankelijk van trage vs. snelle enzymrijping, max. 10 mg)", targ_lo_mg, targ_hi_mg)
     }
 
     aucu_ss_med <- stats::median(m$FU * m$AUC0_inf * (24 / st$tau), na.rm = TRUE)
+    cur_dose_lbl <- if (st$dose_mode == "mg") sprintf("%.3g mg", st$dose_mg) else sprintf("%.3g mg/kg", st$dose_mgkg)
+
+    if (pta$cur_above_safety > 10) {
+      status_cls <- "hf-kpi-value hf-status-danger"
+      status_txt <- sprintf("Hoog risico: %.0f%% boven plafond", pta$cur_above_safety)
+    } else if (pta$cur_below > 50) {
+      status_cls <- "hf-kpi-value hf-status-warn"
+      status_txt <- sprintf("Aan de lage kant (%.0f%% te laag)", pta$cur_below)
+    } else {
+      status_cls <- "hf-kpi-value hf-status-ok"
+      status_txt <- sprintf("%.0f%% valt binnen het venster", pta$cur_pta)
+    }
 
     div(
       class = "hf-kpi-grid",
@@ -717,29 +786,22 @@ server <- function(input, output, session) {
         class = "hf-kpi-card",
         div(class = "hf-kpi-label", "1. Veilige startdosis ('start low')"),
         div(class = "hf-kpi-value", sprintf("%.2f mg/kg", ont$start_rec_mgkg)),
-        div(class = "hf-kpi-sub", sprintf("~%.2f mg/gift (~5 mg volw. AUCu-eq, conservatief)", start_mg))
+        div(class = "hf-kpi-sub",
+            sprintf("~%.2f mg per gift — mikt op de onderkant van het venster (~20 ng*u/mL = volwassen 5 mg startdosis) onder het voorzichtigste rijpingsmodel.", start_mg))
       ),
       div(
         class = "hf-kpi-card",
-        div(class = "hf-kpi-label", "2. Streefdosis-bereik (~10 mg DAPA-HF eq)"),
+        div(class = "hf-kpi-label", "2. Streefdosis bij goede tolerantie ('go slow')"),
         div(class = "hf-kpi-value", targ_val_txt),
         div(class = "hf-kpi-sub", targ_sub_txt)
       ),
       div(
         class = "hf-kpi-card",
-        div(class = "hf-kpi-label", "3. PTA bij huidige dosis (steady state)"),
-        div(class = "hf-kpi-value", sprintf("%.0f%% in doelvenster", pta$cur_pta)),
-        div(class = "hf-kpi-sub", sprintf("Mediane AUCu,24h: %.1f ng*h/mL | > plafond: %.0f%%",
-                                          aucu_ss_med, pta$cur_above_safety))
-      ),
-      div(
-        class = "hf-kpi-card",
-        div(class = "hf-kpi-label", "4. SGLT2-bezetting vs. Renale PD"),
-        div(class = "hf-kpi-value", sprintf("%.0f%% / %.0f%%",
-                                            stats::median(m$SGLT2_inh_avg, na.rm = TRUE),
-                                            stats::median(m$Renal_PD_eff, na.rm = TRUE))),
-        div(class = "hf-kpi-sub", sprintf("Luminale SGLT2-remming vs. GFR-gekoppelde PD (med. eGFR %.0f)",
-                                          stats::median(m$EGFR, na.rm = TRUE)))
+        div(class = "hf-kpi-label", sprintf("3. Beoordeling huidige dosis (%s)", cur_dose_lbl)),
+        div(class = status_cls, status_txt),
+        div(class = "hf-kpi-sub",
+            sprintf("Midden (mediaan) vrije spiegel: %.1f ng*u/mL (venster %g–%g | boven plafond %g: %.0f%%).",
+                    aucu_ss_med, tg$target_lo, tg$target_hi, tg$safety_max, pta$cur_above_safety))
       )
     )
   })
@@ -749,8 +811,50 @@ server <- function(input, output, session) {
     if (length(ont$alerts) == 0L) return(NULL)
     div(
       class = "hf-alert-panel",
-      strong("Klinisch-farmacologische aandachtspunten voor deze populatie & PK/PD-instellingen:"),
-      tags$ul(lapply(ont$alerts, tags$li))
+      strong("Belangrijk voor deze kindergroep:"),
+      tags$ul(
+        lapply(ont$alerts, function(a) {
+          tags$li(strong(a$lead), " ", a$body)
+        })
+      )
+    )
+  })
+
+  output$hf_window_plot <- renderPlot({
+    s   <- sim_res(); req(s)
+    ont <- hf_ontogeny_data(); req(ont)
+    tg  <- hf_targets_reactive()
+    build_window_explainer_plot(s, tg, ont)
+  })
+
+  output$hf_window_cards_ui <- renderUI({
+    tg <- hf_targets_reactive()
+    div(
+      class = "hf-explain-grid-4",
+      div(
+        class = "hf-explain-card hf-zone-low",
+        div(class = "hf-explain-title", sprintf("Ondergrens: %g ng*u/mL", tg$target_lo)),
+        p(strong("Herkomst: "), "Gelijk aan een ", strong("volwassen 5 mg startdosis"), " (mediaan 19,2 ng*u/mL) én de onderste 5%-grens van volwassenen op 10 mg (23,7 ng*u/mL; Penland 2023)."),
+        p(strong("Betekenis: "), "Onder deze grens neemt de 24-uurs remming van SGLT2 af en geef je waarschijnlijk te weinig.")
+      ),
+      div(
+        class = "hf-explain-card hf-zone-ok",
+        div(class = "hf-explain-title", "Streefmidden: 38 – 48 ng*u/mL"),
+        p(strong("Herkomst: "), "Het bewezen werkzame midden bij ", strong("volwassenen op 10 mg 1x/dag"), ": 38,5 ng*u/mL bij gezonde nieren (eGFR 90) en 48,2 ng*u/mL bij de gemiddelde ", strong("DAPA-HF"), " hartfalenpatiënt (eGFR 66)."),
+        p(strong("Betekenis: "), "Dit is het eigenlijke mikpunt bij optitreren naar de onderhoudsdosis.")
+      ),
+      div(
+        class = "hf-explain-card hf-zone-ok",
+        div(class = "hf-explain-title", sprintf("Bovengrens venster: %g ng*u/mL", tg$target_hi)),
+        p(strong("Herkomst: "), "Komt exact overeen met de ", strong("bovenste 95%-grens (74,5 ng*u/mL)"), " van volwassenen op 10 mg met licht tot matig verminderde nierfunctie (eGFR 60–89; Penland 2023 Tabel S4)."),
+        p(strong("Betekenis: "), sprintf("Alles tussen %g en %g ng*u/mL valt binnen de normale blootstelling van volwassen hartfalenpatiënten.", tg$target_lo, tg$target_hi))
+      ),
+      div(
+        class = "hf-explain-card hf-zone-max",
+        div(class = "hf-explain-title", sprintf("Veiligheidsplafond: %g ng*u/mL", tg$safety_max)),
+        p(strong("Herkomst: "), "Gelijk aan de mediane spiegel (87,7 ng*u/mL) van volwassenen met ", strong("ernstige nierschade (eGFR 15–29)"), " op 10 mg/dag (Penland 2023 / DAPA-CKD)."),
+        p(strong("Betekenis: "), "Tot dit punt is 10 mg in grote studies veilig gebleken; daarboven ontbreken veiligheidsdata en stijgt de kans op bijwerkingen.")
+      )
     )
   })
 
@@ -766,11 +870,11 @@ server <- function(input, output, session) {
 
     pta_long <- rbind(
       data.frame(dose = gdf$dose, pct = gdf$pct_in_target,
-                 cat = sprintf("Binnen doelvenster (%g-%g ng*h/mL)", tg$target_lo, tg$target_hi)),
+                 cat = sprintf("Goed: binnen therapeutisch venster (%g-%g ng*u/mL)", tg$target_lo, tg$target_hi)),
       data.frame(dose = gdf$dose, pct = gdf$pct_below,
-                 cat = sprintf("Onder streefvenster (< %g ng*h/mL)", tg$target_lo)),
+                 cat = sprintf("Te laag: onder ondergrens (< %g ng*u/mL)", tg$target_lo)),
       data.frame(dose = gdf$dose, pct = gdf$pct_above_safety,
-                 cat = sprintf("Boven veiligheidsplafond (> %g ng*h/mL)", tg$safety_max))
+                 cat = sprintf("Te hoog: boven veiligheidsplafond (> %g ng*u/mL)", tg$safety_max))
     )
     lvls <- unique(pta_long$cat)
     pta_long$cat <- factor(pta_long$cat, levels = lvls)
@@ -787,15 +891,18 @@ server <- function(input, output, session) {
       scale_linetype_manual(values = ltys_pta) +
       coord_cartesian(ylim = c(0, 103)) +
       labs(
-        title = sprintf("A. Dosis vs. PTA (%s)", st$mat_label),
-        subtitle = sprintf("Max. PTA = %.0f%% bij %.3g %s (groene stippellijn)",
-                           pta$max_pta_pct, pta$dose_opt_pta, if (st$dose_mode == "mg") "mg" else "mg/kg"),
+        title = sprintf("A. Welke dosis past het best? (%s)", st$mat_label),
+        subtitle = sprintf("Optimale dosis = %.3g %s (%.0f%% in venster; groene streeplijn)",
+                           pta$dose_opt_pta, if (st$dose_mode == "mg") "mg" else "mg/kg", pta$max_pta_pct),
         x = dose_unit_lbl,
-        y = "Percentage virtuele kinderen (%)",
+        y = "Percentage kinderen (%)",
         color = NULL, linetype = NULL
       ) +
-      theme_minimal(base_size = 12.5) +
-      theme(plot.title = element_text(face = "bold", color = "#08306b"),
+      theme_minimal(base_size = 12) +
+      theme(plot.title.position = "plot",
+            plot.title = element_text(face = "bold", color = "#08306b", size = 12.5),
+            plot.subtitle = element_text(size = 10.5, color = "#3d4f63"),
+            plot.margin = margin(6, 12, 6, 6),
             legend.position = "bottom",
             legend.direction = "vertical")
 
@@ -810,17 +917,20 @@ server <- function(input, output, session) {
       scale_fill_manual(values = c("#9ecae1", "#fdd0a2", "#c7e9c0")) +
       coord_cartesian(ylim = c(0, y_cap)) +
       annotate("text", x = 3.45, y = tg$safety_max, hjust = 1, vjust = -0.4, size = 3.1,
-               color = "#b2182b", fontface = "bold", label = sprintf("Plafond (%g ng*h/mL)", tg$safety_max)) +
+               color = "#b2182b", fontface = "bold", label = sprintf("Veiligheidsplafond (%g)", tg$safety_max)) +
       annotate("text", x = 3.45, y = tg$adult_10mg_hf, hjust = 1, vjust = -0.4, size = 3.0,
-               color = "#1a7f37", label = "DAPA-HF 10 mg med. (48.2)") +
+               color = "#1a7f37", label = "DAPA-HF 10 mg midden (48,2)") +
       labs(
-        title = "B. Gevoeligheid voor UGT1A9-ontogenie",
-        subtitle = "Steady-state AUCu,24h bij de huidige dosis (groene band = doelvenster)",
+        title = "B. Invloed van het gekozen rijpingsmodel",
+        subtitle = "Vrije blootstelling bij huidige dosis (groen = venster)",
         x = NULL,
-        y = "Ongebonden AUCu,24h,ss (ng*h/mL)"
+        y = "Vrije 24-uurs blootstelling AUCu,24h,ss (ng*u/mL)"
       ) +
-      theme_minimal(base_size = 12.5) +
-      theme(plot.title = element_text(face = "bold", color = "#08306b"),
+      theme_minimal(base_size = 12) +
+      theme(plot.title.position = "plot",
+            plot.title = element_text(face = "bold", color = "#08306b", size = 12.5),
+            plot.subtitle = element_text(size = 10.5, color = "#3d4f63"),
+            plot.margin = margin(6, 12, 6, 8),
             legend.position = "none")
 
     side_by_side_plots(p_left, p_right)
@@ -855,14 +965,17 @@ server <- function(input, output, session) {
       )) +
       coord_cartesian(ylim = c(0, 100)) +
       labs(
-        title = "A. Luminale SGLT2-receptorbezetting over het interval",
-        subtitle = "Blauw = gesimuleerd kindercohort (mediaan + P5-P95); rood/oranje = volwassen HF ref",
-        x = "Tijd na dosis (uur)",
-        y = "Luminale SGLT2-remming (%)",
+        title = "A. SGLT2-blokkade in het nierbuisje over de dag",
+        subtitle = "Blauw = kindergroep (mediaan + 90% PI); rood/oranje = volwassen 10 & 5 mg",
+        x = "Tijd na inname (uur)",
+        y = "Blokkade van SGLT2-transporter (%)",
         color = NULL, linetype = NULL
       ) +
-      theme_minimal(base_size = 12.5) +
-      theme(plot.title = element_text(face = "bold", color = "#08306b"),
+      theme_minimal(base_size = 12) +
+      theme(plot.title.position = "plot",
+            plot.title = element_text(face = "bold", color = "#08306b", size = 12.5),
+            plot.subtitle = element_text(size = 10.5, color = "#3d4f63"),
+            plot.margin = margin(6, 12, 6, 6),
             legend.position = "bottom",
             legend.direction = "vertical")
 
@@ -872,9 +985,9 @@ server <- function(input, output, session) {
     th    <- nonmem_theta()
     er_curves <- rbind(
       data.frame(aucu = x_seq, resp = 100 * x_seq / (th$eauc50_u_tgf + x_seq),
-                 as_type = "Cardiorenaal TGF-effect (% Emax; EAUCu50 = 5.2)"),
+                 as_type = "Drukverlaging nierfilter (TGF-effect, % van max)"),
       data.frame(aucu = x_seq, resp = 100 * x_seq / (th$eauc50_u_hct + x_seq),
-                 as_type = "Systemisch / HCT-effect (% Emax; EAUCu50 = 20.7)")
+                 as_type = "Systemisch / hematocriet-effect (% van max)")
     )
 
     pts <- m[m$AUCu_24h <= x_max * 1.05, , drop = FALSE]
@@ -894,18 +1007,21 @@ server <- function(input, output, session) {
         colors = c("#b2182b", "#ef8a62", "#67a9cf", "#08306b"),
         limits = c(15, 130),
         oob = scales::squish,
-        name = "eGFR\n(mL/min/1.73m2)"
+        name = "Nierfunctie eGFR\n(mL/min/1.73m2)"
       ) +
       coord_cartesian(xlim = c(0, x_max), ylim = c(0, 115)) +
       labs(
-        title = "B. Systemische Emax vs. GFR-gekoppelde renale PD",
-        subtitle = "Punten = individuele renale osmotische PD-index (gekleurd naar eGFR); zwarte lijnen = Emax",
-        x = "Ongebonden blootstelling AUCu,24h (ng*h/mL)",
-        y = "Farmacodynamische respons (%)",
+        title = "B. Lage nierfunctie: wél spiegel, minder diurese",
+        subtitle = "Stippen = vochtafdrijvende capaciteit (rood = lage eGFR); lijnen = systemisch effect",
+        x = "Vrije 24-uurs bloedspiegel AUCu,24h (ng*u/mL)",
+        y = "Verwachte werkzaamheid (%)",
         linetype = NULL
       ) +
-      theme_minimal(base_size = 12.5) +
-      theme(plot.title = element_text(face = "bold", color = "#08306b"),
+      theme_minimal(base_size = 12) +
+      theme(plot.title.position = "plot",
+            plot.title = element_text(face = "bold", color = "#08306b", size = 12.5),
+            plot.subtitle = element_text(size = 10.5, color = "#3d4f63"),
+            plot.margin = margin(6, 12, 6, 8),
             legend.position = "bottom",
             legend.box = "vertical")
 
