@@ -59,9 +59,14 @@ nonmem_theta <- function() {
     alag       = 0.5,     # THETA(9)  ALAG1 (h), fixed
     gi_f0      = 0.45,    # relatieve maagledigingssnelheid bij geboorte t.o.v. volwassene
     gi_t50     = 0.10,    # leeftijd bij 50% GI-absorptiematuratie (jaar; ~5 weken)
-    tm50       = 0.09,    # THETA(10) UGT1A9 maturatie TM50 (jaar), Farhan 2024 Table 1
-    hill       = 1.9,     # THETA(11) UGT1A9 maturatie Hill-coeff, Farhan 2024
-    fbirth     = 0.05     # THETA(12) UGT1A9 Fbirth, Farhan 2024
+    tm50            = 0.09,   # THETA(10) UGT1A9 maturatie TM50 (jaar), Farhan 2024 Table 1
+    hill            = 1.9,    # THETA(11) UGT1A9 maturatie Hill-coeff, Farhan 2024
+    fbirth          = 0.05,   # THETA(12) UGT1A9 Fbirth, Farhan 2024
+    ic50_sglt2_ngml = 0.45,   # humaan SGLT2 in-vitro IC50 = 1.1 nM (MW 408.87 => 0.45 ng/mL; FDA NDA 202293)
+    pt_conc_factor  = 2.25,   # proximale tubulus S1/S2 waterresorptie-concentratiefactor (Yakovleva 2014)
+    cu50_sglt2_ngml = 0.20,   # effectieve vrije plasmaconcentratie voor 50% luminale SGLT2-remming (0.45 / 2.25)
+    eauc50_u_tgf    = 5.2,    # vrije AUCu,50 voor acute GFR/TGF-respons (Kroonen 2020: 61 * 0.086 ng*h/mL)
+    eauc50_u_hct    = 20.7    # vrije AUCu,50 voor hematocriet/volume-respons (Kroonen 2020: 241 * 0.086 ng*h/mL)
   )
 }
 
@@ -285,12 +290,18 @@ egfr_from_copula <- function(pop, egfr_iiv = TRUE, egfr_cv_sd = 0.215) {
   list(egfr = egfr, ngfr = ngfr, source = source, unit_note = unit_note)
 }
 
-# Individuele PK-parameters uit de virtuele populatie (6-pijler fysiologisch model)
+# Individuele PK-parameters uit de virtuele populatie (6-pijler fysiologisch model,
+# uitbreidbaar met hartfalen-pathofysiologie: cardiorenaal RF, hepatische stuwing,
+# extracellulair oedeem boven drooggewicht en hypoalbuminemie/PLE)
 individual_params <- function(pop,
                               th = nonmem_theta(),
                               egfr = NULL,
                               mat_option = "farhan2024",
-                              egfr_iiv = FALSE) {
+                              egfr_iiv = FALSE,
+                              rf_factor = 1.0,
+                              cl_hep_factor = 1.0,
+                              edema_pct = 0.0,
+                              alb_override = NULL) {
   mat_funs <- maturation_functions()
   if (!mat_option %in% names(mat_funs)) {
     stop("Onbekende maturatiefunctie: ", mat_option)
@@ -301,49 +312,65 @@ individual_params <- function(pop,
   age <- pmax(as.numeric(pop$AGE), 0)
   sex <- if ("SEXISMALE" %in% names(pop)) as.numeric(pop$SEXISMALE) else rep(1, n)
 
+  # Overvulling / extracellulair oedeem boven euvolemisch drooggewicht (PICU-definitie: W_obs = W_dry * (1 + FO/100))
+  ed_pct  <- if (is.null(edema_pct) || is.na(edema_pct[1])) 0.0 else max(0.0, as.numeric(edema_pct[1]))
+  bwt_dry <- bwt / (1 + ed_pct / 100)
+  v_edema <- pmax(0.0, bwt - bwt_dry)
+
   bsa_in <- if ("BSA" %in% names(pop) && !all(is.na(pop$BSA))) as.numeric(pop$BSA) else NULL
   hm <- if ("HEIGHT" %in% names(pop) && !all(is.na(pop$HEIGHT))) {
     h_raw <- as.numeric(pop$HEIGHT)
     ifelse(h_raw > 3, h_raw / 100, h_raw)
   } else {
-    estimate_height_m(bwt, age, sex, bsa = bsa_in)
+    estimate_height_m(bwt_dry, age, sex, bsa = bsa_in)
   }
 
-  bsa <- if (!is.null(bsa_in)) bsa_in else sqrt((hm * 100 * bwt) / 3600)
-  bmi <- bwt / pmax(hm^2, 0.09)
+  bsa <- if (!is.null(bsa_in)) bsa_in else sqrt((hm * 100 * bwt_dry) / 3600)
+  bmi <- bwt_dry / pmax(hm^2, 0.09)
 
-  # 1. Lichaamssamenstelling (FFM & NFM)
-  ffm       <- calc_ffm(bwt, hm, age, sex)
-  nfm_cl    <- ffm + 0.25 * (bwt - ffm)
-  nfm_v2    <- ffm + 0.20 * (bwt - ffm)
+  # 1. Lichaamssamenstelling (FFM & NFM op euvolemisch drooggewicht: oedeemvocht heeft geen lever-/niermassa)
+  ffm       <- calc_ffm(bwt_dry, hm, age, sex)
+  nfm_cl    <- ffm + 0.25 * (bwt_dry - ffm)
+  nfm_v2    <- ffm + 0.20 * (bwt_dry - ffm)
   f_size_cl <- (nfm_cl / th$nfm_cl_ref)^0.75
   f_size_v2 <- nfm_v2 / th$nfm_v2_ref
 
-  # 2. Plasma-albumine binding ontogenie (fu)
-  alb_in  <- if ("ALBUMIN" %in% names(pop)) pop$ALBUMIN else NULL
-  fu_info <- fu_mcnamara(age, alb_gL = alb_in, fu_adult = th$fu_adult, alb_adult = th$alb_adult)
+  # 2. Plasma-albumine binding ontogenie (fu) + optionele hypoalbuminemie/PLE override
+  alb_in <- if (!is.null(alb_override) && length(alb_override) > 0 && !all(is.na(alb_override))) {
+    rep(as.numeric(alb_override), length.out = n)
+  } else if ("ALBUMIN" %in% names(pop)) {
+    pop$ALBUMIN
+  } else {
+    NULL
+  }
+  fu_info  <- fu_mcnamara(age, alb_gL = alb_in, fu_adult = th$fu_adult, alb_adult = th$alb_adult)
   fu       <- fu_info$fu
   fu_ratio <- fu_info$fu_ratio
 
-  # 3. Nierfunctie en relatieve renale functie t.o.v. gezonde leeftijdsnorm
-  ngfr <- ngfr_rhodin(age, bwt)
+  # 3. Nierfunctie en relatieve renale functie t.o.v. gezonde leeftijdsnorm (+ cardiorenaal rf_factor)
+  ngfr <- ngfr_rhodin(age, bwt_dry)
   if (is.null(egfr)) {
     egfr <- egfr_from_copula(pop, egfr_iiv = egfr_iiv)$egfr
   } else {
     egfr <- as.numeric(egfr)
   }
+  rf_fac <- if (is.null(rf_factor) || is.na(rf_factor[1])) 1.0 else max(0.05, as.numeric(rf_factor[1]))
+  if (abs(rf_fac - 1.0) > 1e-12) {
+    egfr <- pmin(pmax(egfr * rf_fac, 5), 180)
+  }
   rf <- pmin(pmax(egfr / pmax(ngfr, 1.0), 0.0), 1.75)
 
-  # 4 & 5. Drie-paden klaring met hepatische + renale UGT1A9 maturatie
+  # 4 & 5. Drie-paden klaring met hepatische + renale UGT1A9 maturatie (+ hepatische stuwing cl_hep_factor)
+  hep_fac    <- if (is.null(cl_hep_factor) || is.na(cl_hep_factor[1])) 1.0 else max(0.05, as.numeric(cl_hep_factor[1]))
   mat        <- mat_funs[[mat_option]]$fun(age, th)
-  cl_hep     <- fu_ratio * th$cl_hep * mat * f_size_cl
+  cl_hep     <- fu_ratio * th$cl_hep * mat * f_size_cl * hep_fac
   cl_ren_ugt <- fu_ratio * th$cl_ren_ugt * mat * f_size_cl * rf
   cl_filt    <- fu_ratio * th$cl_filt_s * egfr * (bsa / th$bsa_ref)
   cl         <- cl_hep + cl_ren_ugt + cl_filt
 
-  # 6. Verdelingsvolumes, intercompartimentale klaring en ontwikkelings-GI-absorptie
-  v2   <- th$v2 * f_size_v2
-  v3   <- th$v3 * (bwt / th$bwt_ref) * fu_ratio
+  # 6. Verdelingsvolumes (+ extracellulair oedeemvolume in V2), Q en ontwikkelings-GI-absorptie
+  v2   <- th$v2 * f_size_v2 + v_edema
+  v3   <- th$v3 * (bwt_dry / th$bwt_ref) * fu_ratio
   q    <- th$q * f_size_cl
   f_gi <- th$gi_f0 + (1 - th$gi_f0) * (age / (th$gi_t50 + age))
   ka   <- th$ka * f_gi
@@ -351,9 +378,11 @@ individual_params <- function(pop,
   list(
     CL = cl, CL_hep = cl_hep, CL_ren_ugt = cl_ren_ugt, CL_filt = cl_filt,
     KA = ka, V2 = v2, V3 = v3, Q = q, ALAG = th$alag,
-    BWT = bwt, HEIGHT = hm, BMI = bmi, FFM = ffm, NFM_CL = nfm_cl, NFM_V2 = nfm_v2,
+    BWT = bwt, BWT_DRY = bwt_dry, V_EDEMA = v_edema,
+    HEIGHT = hm, BMI = bmi, FFM = ffm, NFM_CL = nfm_cl, NFM_V2 = nfm_v2,
     AGE = age, EGFR = egfr, NGFR = ngfr, RF = rf, BSA = bsa, SEX = sex,
-    MAT = mat, FU = fu, FU_RATIO = fu_ratio, ALB = fu_info$alb
+    MAT = mat, FU = fu, FU_RATIO = fu_ratio, ALB = fu_info$alb,
+    RF_FACTOR = rf_fac, CL_HEP_FACTOR = hep_fac, EDEMA_PCT = ed_pct
   )
 }
 
@@ -437,7 +466,13 @@ simulate_population_pk <- function(pop,
                                    th = nonmem_theta(),
                                    om = NULL,
                                    dt = NULL,
-                                   out_by = 0.1) {
+                                   out_by = 0.1,
+                                   rf_factor = 1.0,
+                                   cl_hep_factor = 1.0,
+                                   edema_pct = 0.0,
+                                   dose_weight_basis = c("dry", "actual"),
+                                   alb_override = NULL,
+                                   f1_rel = 1.0) {
   if (tau <= 0) stop("Dosisinterval (tau) moet groter dan 0 uur zijn.")
   if (is.null(dose_mgkg) && is.null(dose_mg)) {
     stop("Geef ofwel 'dose_mgkg' (mg/kg) ofwel 'dose_mg' (mg) op.")
@@ -445,6 +480,7 @@ simulate_population_pk <- function(pop,
   if (!is.null(dose_mgkg) && !is.null(dose_mg)) {
     stop("Geef slechts één van 'dose_mgkg' of 'dose_mg' op, niet beide.")
   }
+  dose_weight_basis <- match.arg(dose_weight_basis)
 
   set.seed(seed)
   n <- nrow(pop)
@@ -457,7 +493,16 @@ simulate_population_pk <- function(pop,
   }
 
   egfr_info <- egfr_from_copula(pop, egfr_iiv = isTRUE(egfr_iiv))
-  p <- individual_params(pop, th = th, egfr = egfr_info$egfr, mat_option = mat_option)
+  p <- individual_params(
+    pop,
+    th            = th,
+    egfr          = egfr_info$egfr,
+    mat_option    = mat_option,
+    rf_factor     = rf_factor,
+    cl_hep_factor = cl_hep_factor,
+    edema_pct     = edema_pct,
+    alb_override  = alb_override
+  )
 
   # Inter-individuele variabiliteit (log-normaal, exp(ETA))
   if (isTRUE(iiv)) {
@@ -469,15 +514,17 @@ simulate_population_pk <- function(pop,
     }
   }
 
+  wt_for_dose <- if (dose_weight_basis == "actual") p$BWT else p$BWT_DRY
   dose_mg_vec <- if (!is.null(dose_mg)) {
     rep(as.numeric(dose_mg), length.out = n)
   } else {
-    as.numeric(dose_mgkg) * p$BWT
+    as.numeric(dose_mgkg) * wt_for_dose
   }
   if (any(is.na(dose_mg_vec) | dose_mg_vec <= 0)) {
     stop("Alle individuele doses moeten positief zijn.")
   }
-  dose_ug <- dose_mg_vec * 1000  # mg -> microg (zodat microg / L = ng/mL)
+  f1_rel_val <- if (is.null(f1_rel) || is.na(f1_rel[1])) 1.0 else max(0.05, as.numeric(f1_rel[1]))
+  dose_ug <- dose_mg_vec * 1000 * f1_rel_val  # mg -> microg (zodat microg / L = ng/mL)
 
   # Mean-gecentreerde log-normale IOV op F1: E[F1] = 1.0 bij elke CV%
   sigma_iov <- sqrt(log(1 + (iov_f1_cv / 100)^2))
@@ -622,64 +669,112 @@ simulate_population_pk <- function(pop,
   t_half_beta <- log(2) / beta
   auc_inf_sd  <- dose_ug / p$CL
 
+  # Ongebonden concentratieprofiel Cu(t) = fu * C(t) & semi-mechanistische SGLT2/cardiorenaal PD
+  curve_ss_u   <- p$FU * curve_last
+  curve_day1_u <- p$FU * curve_first
+  cu50         <- if (!is.null(th$cu50_sglt2_ngml)) th$cu50_sglt2_ngml else 0.20
+  occ_mat      <- 100 * curve_ss_u / (cu50 + curve_ss_u)
+  if (n_out >= 2L) {
+    dt_vec    <- diff(times)
+    sglt2_avg <- as.vector(((occ_mat[, -n_out, drop = FALSE] + occ_mat[, -1L, drop = FALSE]) %*% dt_vec) / (2 * tau))
+  } else {
+    sglt2_avg <- occ_mat[, 1L]
+  }
+  sglt2_min    <- occ_mat[, n_out]
+  aucu_tau     <- p$FU * auc_tau
+  aucu_24h     <- aucu_tau * (24 / tau)
+  renal_pd_eff <- sglt2_avg * pmin(1.5, p$EGFR / 100.0)
+  eauc50_tgf   <- if (!is.null(th$eauc50_u_tgf)) th$eauc50_u_tgf else 5.2
+  eauc50_hct   <- if (!is.null(th$eauc50_u_hct)) th$eauc50_u_hct else 20.7
+  e_tgf_pct    <- 100 * aucu_24h / (eauc50_tgf + aucu_24h)
+  e_hct_pct    <- 100 * aucu_24h / (eauc50_hct + aucu_24h)
+
   metrics <- data.frame(
-    ID        = if ("ID" %in% names(pop)) pop$ID else seq_len(n),
-    AGE       = p$AGE,
-    BWT       = p$BWT,
-    HEIGHT    = p$HEIGHT,
-    BMI       = p$BMI,
-    FFM       = p$FFM,
-    EGFR      = p$EGFR,
-    NGFR      = p$NGFR,
-    BSA       = p$BSA,
-    SEXISMALE = p$SEX,
-    MAT       = p$MAT,
-    FU        = p$FU,
-    CL        = p$CL,
-    KA        = p$KA,
-    V2        = p$V2,
-    V3        = p$V3,
-    Q         = p$Q,
-    t_half    = t_half_beta,
-    DOSE_MG   = dose_mg_vec,
-    Cmax      = cmax_val,
-    Tmax      = tmax_val,
-    Cmin      = curve_last[, n_out],
-    AUCtau    = auc_tau,
-    AUC0_inf  = auc_inf_sd,
-    Cavg      = auc_tau / tau,
-    AUCu      = p$FU * auc_tau,
-    Cavgu     = p$FU * (auc_tau / tau)
+    ID            = if ("ID" %in% names(pop)) pop$ID else seq_len(n),
+    AGE           = p$AGE,
+    BWT           = p$BWT,
+    BWT_DRY       = p$BWT_DRY,
+    HEIGHT        = p$HEIGHT,
+    BMI           = p$BMI,
+    FFM           = p$FFM,
+    EGFR          = p$EGFR,
+    NGFR          = p$NGFR,
+    RF            = p$RF,
+    BSA           = p$BSA,
+    SEXISMALE     = p$SEX,
+    MAT           = p$MAT,
+    ALB           = p$ALB,
+    FU            = p$FU,
+    CL            = p$CL,
+    KA            = p$KA,
+    V2            = p$V2,
+    V3            = p$V3,
+    Q             = p$Q,
+    t_half        = t_half_beta,
+    DOSE_MG       = dose_mg_vec,
+    Cmax          = cmax_val,
+    Tmax          = tmax_val,
+    Cmin          = curve_last[, n_out],
+    Cu_max        = p$FU * cmax_val,
+    Cu_min        = curve_ss_u[, n_out],
+    AUCtau        = auc_tau,
+    AUC0_inf      = auc_inf_sd,
+    Cavg          = auc_tau / tau,
+    AUCu          = aucu_tau,
+    AUCu_24h      = aucu_24h,
+    Cavgu         = aucu_tau / tau,
+    SGLT2_inh_avg = sglt2_avg,
+    SGLT2_inh_min = sglt2_min,
+    Renal_PD_eff  = renal_pd_eff,
+    E_TGF_pct     = e_tgf_pct,
+    E_HCT_pct     = e_hct_pct
   )
 
   ss_attainment <- stats::median(auc_tau / auc_inf_sd, na.rm = TRUE)
 
+  egfr_src_lbl <- egfr_info$source
+  if (abs(p$RF_FACTOR - 1.0) > 1e-12) {
+    egfr_src_lbl <- sprintf("%s [cardiorenaal geschaald x %.2f]", egfr_src_lbl, p$RF_FACTOR)
+  }
+
   list(
-    pop        = pop,
-    params     = p,
-    times      = times,
-    curve_ss   = curve_last,
-    curve_day1 = curve_first,
-    cs_ss      = curve_summary(curve_last, times),
-    cs_day1    = curve_summary(curve_first, times),
-    metrics    = metrics,
-    settings   = list(
-      dose_mgkg      = if (!is.null(dose_mgkg)) as.numeric(dose_mgkg) else NA_real_,
-      dose_mg        = if (!is.null(dose_mg)) as.numeric(dose_mg)[1] else NA_real_,
-      dose_mode      = if (!is.null(dose_mg)) "mg" else "mgkg",
-      tau            = tau,
-      n_doses        = n_doses,
-      steady_state   = steady_state,
-      ss_attainment  = ss_attainment,
-      iov_f1_cv      = iov_f1_cv,
-      ka_bsv         = ka_bsv,
-      ka_mode        = if (!isTRUE(ka_bsv)) "none" else ka_mode,
-      seed           = seed,
-      n              = n,
-      mat_option     = mat_option,
-      mat_label      = maturation_functions()[[mat_option]]$short,
-      egfr_source    = egfr_info$source,
-      egfr_unit_note = egfr_info$unit_note
+    pop          = pop,
+    params       = p,
+    times        = times,
+    curve_ss     = curve_last,
+    curve_day1   = curve_first,
+    curve_ss_u   = curve_ss_u,
+    curve_day1_u = curve_day1_u,
+    occ_sglt2    = occ_mat,
+    cs_ss        = curve_summary(curve_last, times),
+    cs_day1      = curve_summary(curve_first, times),
+    cs_ss_u      = curve_summary(curve_ss_u, times),
+    cs_day1_u    = curve_summary(curve_day1_u, times),
+    cs_sglt2     = curve_summary(occ_mat, times),
+    metrics      = metrics,
+    settings     = list(
+      dose_mgkg         = if (!is.null(dose_mgkg)) as.numeric(dose_mgkg) else NA_real_,
+      dose_mg           = if (!is.null(dose_mg)) as.numeric(dose_mg)[1] else NA_real_,
+      dose_mode         = if (!is.null(dose_mg)) "mg" else "mgkg",
+      dose_weight_basis = dose_weight_basis,
+      tau               = tau,
+      n_doses           = n_doses,
+      steady_state      = steady_state,
+      ss_attainment     = ss_attainment,
+      iov_f1_cv         = iov_f1_cv,
+      f1_rel            = f1_rel_val,
+      rf_factor         = p$RF_FACTOR,
+      cl_hep_factor     = p$CL_HEP_FACTOR,
+      edema_pct         = p$EDEMA_PCT,
+      alb_override      = if (!is.null(alb_override) && !all(is.na(alb_override))) as.numeric(alb_override)[1] else NA_real_,
+      ka_bsv            = ka_bsv,
+      ka_mode           = if (!isTRUE(ka_bsv)) "none" else ka_mode,
+      seed              = seed,
+      n                 = n,
+      mat_option        = mat_option,
+      mat_label         = maturation_functions()[[mat_option]]$short,
+      egfr_source       = egfr_src_lbl,
+      egfr_unit_note    = egfr_info$unit_note
     )
   )
 }
@@ -708,17 +803,43 @@ curve_summary <- function(curve, times, probs = c(0.05, 0.5, 0.95)) {
 }
 
 # Samenvatting steady-state metrieken: mediaan, geometrisch gemiddelde + P5/P95
-summarize_metrics <- function(metrics, tau = 24) {
+summarize_metrics <- function(metrics, tau = 24, include_pd = FALSE) {
   cols <- c("Cmax", "Tmax", "Cmin", "AUCtau", "AUCu", "Cavg", "t_half")
-  labels <- c(
-    "Cmax,ss (ng/mL)",
-    "Tmax (uur)",
-    sprintf("Cmin,ss = C%.0f (ng/mL)", tau),
-    "AUCtau,ss totaal (ng*h/mL)",
-    "AUCu,ss ongebonden (ng*h/mL)",
-    "Cavg,ss totaal (ng/mL)",
-    "Terminale t1/2,beta (uur)"
-  )
+  labels <- if (isTRUE(include_pd)) {
+    c(
+      "Cmax,ss totaal (ng/mL)",
+      "Tmax (uur)",
+      sprintf("Cmin,ss = C%.0f totaal (ng/mL)", tau),
+      "AUCtau,ss totaal (ng*h/mL)",
+      "AUCu,ss ongebonden (ng*h/mL)",
+      "Cavg,ss totaal (ng/mL)",
+      "Terminale t1/2,beta (uur)"
+    )
+  } else {
+    c(
+      "Cmax,ss (ng/mL)",
+      "Tmax (uur)",
+      sprintf("Cmin,ss = C%.0f (ng/mL)", tau),
+      "AUCtau,ss totaal (ng*h/mL)",
+      "AUCu,ss ongebonden (ng*h/mL)",
+      "Cavg,ss totaal (ng/mL)",
+      "Terminale t1/2,beta (uur)"
+    )
+  }
+  if (isTRUE(include_pd)) {
+    cols <- c(cols, "Cu_max", "Cu_min", "AUCu_24h", "SGLT2_inh_avg", "SGLT2_inh_min", "Renal_PD_eff", "E_TGF_pct", "E_HCT_pct")
+    labels <- c(
+      labels,
+      "Cu,max,ss ongebonden (ng/mL)",
+      sprintf("Cu,min,ss = Cu%.0f ongebonden (ng/mL)", tau),
+      "AUCu,24u-eq ongebonden (ng*h/mL)",
+      "Luminale SGLT2-remming gem. over interval (%)",
+      "Luminale SGLT2-remming op dalspiegel (%)",
+      "GFR-gekoppelde renale PD-index (% van rijpe nefroncap.)",
+      "Cardiorenaal TGF-effect (% van Emax; Kroonen 2020)",
+      "Systemisch/HCT-effect (% van Emax; Kroonen 2020)"
+    )
+  }
   present <- cols %in% names(metrics)
   cols <- cols[present]
   labels <- labels[present]

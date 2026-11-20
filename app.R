@@ -12,8 +12,9 @@ library(shiny)
 library(ggplot2)
 library(markdown)
 library(copulapop)
+library(grid)
 
-for (f in list.files("R", pattern = "\\.R$", full.names = TRUE)) source(f)
+for (f in sort(list.files("R", pattern = "\\.R$", full.names = TRUE))) source(f)
 if (dir.exists("figures")) addResourcePath("figures", "figures")
 if (dir.exists("docs")) addResourcePath("docs", "docs")
 
@@ -35,9 +36,19 @@ datasets <- c(
   "HSE (Engeland, algemene bevolking, 2–90 j)" = "HSE"
 )
 
+presets_list <- hf_presets()
+hf_preset_choices <- stats::setNames(names(presets_list), vapply(presets_list, `[[`, character(1), "label"))
+
+side_by_side_plots <- function(p_left, p_right) {
+  grid::grid.newpage()
+  grid::pushViewport(grid::viewport(layout = grid::grid.layout(1, 2)))
+  print(p_left,  vp = grid::viewport(layout.pos.row = 1, layout.pos.col = 1))
+  print(p_right, vp = grid::viewport(layout.pos.row = 1, layout.pos.col = 2))
+}
+
 ui <- fluidPage(
   tags$head(tags$link(rel = "stylesheet", type = "text/css", href = "style.css")),
-  titlePanel("Dapagliflozine farmacokinetiek & fysiologische extrapolatie — Monte Carlo populatiesimulatie"),
+  titlePanel("Dapagliflozine PK/PD & fysiologische dosisextrapolatie — incl. pediatrisch hartfalen"),
   sidebarLayout(
     sidebarPanel(
       width = 3,
@@ -61,23 +72,59 @@ ui <- fluidPage(
       ),
       sliderInput("tau", "Dosisinterval (uur) tussen twee doses", min = 1, max = 48, value = 24, step = 1),
       sliderInput("n_doses", "Aantal doses (1 = eenmalige gift)", min = 1, max = 28, value = 7, step = 1),
-      checkboxInput("steady_state", "Directe analytische steady state (bij IOV = 0%)", value = FALSE),
+      checkboxInput("steady_state", "Directe analytische steady state (bij IOV = 0%)", value = TRUE),
       sliderInput("iov_cv", "Inter-occasion variabiliteit op F1 / toegediende dosis (%CV per dosis)",
                   min = 0, max = 100, value = 0, step = 5),
-      tags$label("Leeftijdsrange (jaren; bv. 0.08 = 1 mnd)"),
+      tags$label("Leeftijdsrange (jaren; bv. 0.08 = 1 mnd, 0.5 = 6 mnd)"),
       fluidRow(
-        column(6, numericInput("age_min", "Minimum", value = 0, min = 0, max = 100, step = 0.1)),
-        column(6, numericInput("age_max", "Maximum", value = 5, min = 0, max = 100, step = 0.5))
+        column(6, numericInput("age_min", "Minimum", value = 0.1, min = 0, max = 100, step = 0.05)),
+        column(6, numericInput("age_max", "Maximum", value = 1.0, min = 0, max = 100, step = 0.25))
       ),
       uiOutput("dataset_age_hint"),
       selectInput("dataset", "Virtuele populatie (copulapop dataset)", choices = datasets, selected = "RUMC"),
       selectInput("mat_option", "Maturatiefunctie op hepatische + renale UGT1A9", choices = mat_choices, selected = "farhan2024"),
       selectInput("ka_mode", "Absorptie-variabiliteit (BSV op Ka)", choices = ka_choices, selected = "calibrated"),
+      div(
+        class = "hf-sidebar-box",
+        h4("Hartfalen-fysiologie & sonde"),
+        selectInput("hf_preset", "Klinisch hartfalenprofiel", choices = hf_preset_choices, selected = "standard"),
+        uiOutput("hf_preset_note"),
+        checkboxInput("show_hf_adv", "Toon fijnafstelling (cardiorenaal, stuwing, oedeem, albumine, F1)", value = FALSE),
+        conditionalPanel(
+          condition = "input.show_hf_adv || input.hf_preset != 'standard'",
+          sliderInput("rf_pct", "Cardiorenaal GFR-behoud t.o.v. norm (%)", min = 25, max = 120, value = 100, step = 5),
+          sliderInput("hep_pct", "Hepatische UGT1A9-functie bij stuwing (%)", min = 30, max = 100, value = 100, step = 5),
+          sliderInput("edema_pct", "Overvulling / oedeem boven drooggewicht (%)", min = 0, max = 30, value = 0, step = 1),
+          conditionalPanel(
+            condition = "input.edema_pct > 0 && input.dose_mode == 'mgkg'",
+            radioButtons(
+              "dose_wt_basis", "Gewichtsbasis voor mg/kg-dosering",
+              choices = c("Drooggewicht (aanbevolen)" = "dry", "Actueel oedemateus gewicht" = "actual"),
+              selected = "dry"
+            )
+          ),
+          radioButtons(
+            "alb_mode", "Serumalbumine (eiwitbinding fu)",
+            choices = c("Fysiologisch naar leeftijd (McNamara)" = "auto", "Handmatig (hypoalbuminemie / PLE)" = "manual"),
+            selected = "auto"
+          ),
+          conditionalPanel(
+            condition = "input.alb_mode == 'manual'",
+            sliderInput("alb_val", "Serumalbumine (g/L; volw. ref = 44)", min = 15, max = 50, value = 30, step = 1)
+          ),
+          sliderInput("f1_pct", "Gemiddelde relatieve opname F1 (sonde/suspensie, %)", min = 30, max = 120, value = 100, step = 5)
+        )
+      ),
       selectInput("sex", "Geslacht", choices = c("Beide" = "both", "Man / jongen" = "male", "Vrouw / meisje" = "female")),
       sliderInput("n_subj", "Aantal virtuele individuen (N)", min = 50, max = 2000, value = 1000, step = 50),
       numericInput("seed", "Random seed", value = 42, min = 1),
       hr(),
       h4("Weergave"),
+      radioButtons(
+        "conc_scale", "Concentratie op PK-curve",
+        choices = c("Totaal plasma C(t)" = "total", "Ongebonden vrij plasma Cu(t) + SGLT2-drempel" = "unbound"),
+        selected = "total"
+      ),
       checkboxInput("show_indiv", "Toon individuele curves (max. 30)", value = FALSE),
       checkboxInput("show_day1", "Toon mediaan dag 1 (eerste dosis)", value = FALSE),
       checkboxInput("log_y", "Logaritmische y-as", value = FALSE),
@@ -93,7 +140,7 @@ ui <- fluidPage(
       width = 9,
       uiOutput("error_box"),
       uiOutput("warn_box"),
-      p("Deze app simuleert de farmacokinetiek van dapagliflozine in een virtuele populatie (gegenereerd met copulapop) op basis van het fysiologisch geëxtrapoleerde popPK-model van Penland et al. 2023 (met FFM/NFM-allometrie, albumine-ontogenie, Rhodin/CKiD-U25 nierfunctie en hepatische + renale UGT1A9-maturatie). Stel links dosis, leeftijdsrange (van pasgeborene tot oudere) en dataset in en klik op ", strong("Simuleer"), "."),
+      p("Deze app simuleert de farmacokinetiek én semi-mechanistische farmacodynamiek van dapagliflozine in een virtuele populatie (", strong("copulapop"), ") van pasgeborene tot oudere, inclusief pathofysiologische aanpassingen en dosisvoorspelling voor ", strong("pediatrisch hartfalen"), ". Stel links dosis, leeftijdsvenster en eventueel een hartfalenprofiel in en klik op ", strong("Simuleer"), "."),
       tabsetPanel(
         id = "tabs",
         tabPanel(
@@ -113,10 +160,51 @@ ui <- fluidPage(
           ),
           hr(),
           downloadButton("dl_curve", "Download curve-samenvatting (CSV)"),
-          downloadButton("dl_metrics", "Download individuele metrieken (CSV)")
+          downloadButton("dl_metrics", "Download individuele PK/PD-metrieken (CSV)")
         ),
         tabPanel(
-          "Expositiemetrieken (Cmax / Cmin / AUC / AUCu)",
+          "Hartfalen: PK/PD & Dosisvoorspelling",
+          h4("Dosisvoorspelling & PK–PD analyse voor pediatrisch hartfalen (op basis van ongebonden AUCu,24h,ss)"),
+          uiOutput("hf_kpi_cards"),
+          uiOutput("hf_alerts_ui"),
+          wellPanel(
+            fluidRow(
+              column(
+                4,
+                numericInput("hf_target_lo", "Ondergrens doelvenster AUCu,24h (ng*h/mL; ~5 mg volw. ref = 20)",
+                             value = 20, min = 5, max = 60, step = 2)
+              ),
+              column(
+                4,
+                numericInput("hf_target_hi", "Bovengrens doelvenster AUCu,24h (ng*h/mL; DAPA-HF P95 = 75)",
+                             value = 75, min = 30, max = 150, step = 5)
+              ),
+              column(
+                4,
+                numericInput("hf_safety_max", "Veiligheidsplafond AUCu,24h (ng*h/mL; ernstige CKD med. = 90)",
+                             value = 90, min = 50, max = 200, step = 5)
+              )
+            ),
+            helpText("Streefvenster wordt direct toegepast op de chronische steady-state ongebonden 24-uurs blootstelling (AUCu,24h,ss). Volwassen referenties bij 10 mg 1x/dag: mediaan 38.5 ng*h/mL (gezond/T2DM, eGFR 90) en 48.2 ng*h/mL (typische DAPA-HF patiënt, eGFR 66).")
+          ),
+          h4("1. Probability of Target Attainment (PTA) & gevoeligheid voor UGT1A9-ontogenie"),
+          plotOutput("hf_pta_ontogeny_plot", height = "430px"),
+          h5(strong("Vergelijking van voorspelde start- en streefdosering per UGT1A9-maturatiefunctie (op exact dezelfde virtuele populatie):")),
+          tableOutput("hf_ontogeny_table"),
+          hr(),
+          h4("2. Kritische PK–PD relatie: luminale SGLT2-receptorbezetting vs. GFR-gelimiteerde renale respons"),
+          plotOutput("hf_pkpd_plot", height = "440px"),
+          helpText("Links: 24-uurs profiel van proximaal tubulaire SGLT2-remming t.o.v. volwassen DAPA-HF 10 mg en 5 mg referenties. Rechts: de cruciale PK-PD dissociatie bij jonge zuigelingen en cardiorenaal hartfalen — luminale SGLT2-bezetting bereikt snel een plafond (~85-92%), terwijl de daadwerkelijke natriuretische/osmotische tubulaire output begrensd wordt door de lage glomerulaire filtratie (kleurschaal = eGFR)."),
+          hr(),
+          h4("3. Leeftijdsgestratificeerde pediatrische hartfalen-referentietabel (0 mnd – 18 jaar)"),
+          p("Onderstaande tabel berekent per pediatrisch leeftijdsstratum de conservatieve startdosis (~5 mg-eq op langzaamste ontogenie) en het streefdosis-bereik (~10 mg DAPA-HF-eq van Simcyp s1 t/m Farhan 2024, geplafonneerd op 10 mg en P95 <= veiligheidsplafond), rekening houdend met het links ingestelde hartfalenprofiel."),
+          tableOutput("hf_lifespan_table"),
+          downloadButton("dl_hf_regimen", "Download leeftijdsgestratificeerde HF-doseertabel (CSV)"),
+          hr(),
+          withMathJax(div(class = "md-doc", includeMarkdown("hf_pkpd_rationale.md")))
+        ),
+        tabPanel(
+          "Expositiemetrieken (PK & PD)",
           h4("Populatiesamenvatting: mediaan, geometrisch gemiddelde en [90% predictie-interval P5–P95]"),
           tableOutput("ss_table"),
           plotOutput("metric_plots", height = "380px"),
@@ -130,7 +218,7 @@ ui <- fluidPage(
           "Virtuele populatie",
           verbatimTextOutput("pop_info"),
           plotOutput("pop_plots", height = "360px"),
-          h4("Eerste 100 individuen uit de virtuele populatie (incl. FFM en de in de simulatie gebruikte eGFR)"),
+          h4("Eerste 100 individuen uit de virtuele populatie (incl. drooggewicht, FFM, fu en effectieve eGFR)"),
           tableOutput("pop_table")
         ),
         tabPanel(
@@ -190,6 +278,25 @@ server <- function(input, output, session) {
     if (is.null(info)) return(NULL)
     helpText(sprintf("Beschikbaar in %s: %g tot %g jaar.",
                      input$dataset, info$age_range[1], info$age_range[2]))
+  })
+
+  output$hf_preset_note <- renderUI({
+    pr <- hf_presets()[[input$hf_preset]]
+    if (is.null(pr) || is.null(pr$note)) return(NULL)
+    helpText(pr$note)
+  })
+
+  # Synchroniseer hartfalen-fysiologie schuifjes wanneer een klinisch preset wordt gekozen
+  observeEvent(input$hf_preset, ignoreInit = TRUE, {
+    pr <- hf_presets()[[input$hf_preset]]
+    if (!is.null(pr) && !is.null(pr$rf_factor)) {
+      updateSliderInput(session, "rf_pct", value = round(100 * pr$rf_factor))
+      updateSliderInput(session, "hep_pct", value = round(100 * pr$cl_hep_factor))
+      updateSliderInput(session, "edema_pct", value = pr$edema_pct)
+      updateRadioButtons(session, "alb_mode", selected = pr$alb_mode)
+      updateSliderInput(session, "alb_val", value = pr$alb_val)
+      updateSliderInput(session, "f1_pct", value = round(100 * pr$f1_rel))
+    }
   })
 
   # Pas leeftijdsgrenzen alleen aan als ze buiten het bereik van de nieuw gekozen dataset vallen
@@ -257,6 +364,13 @@ server <- function(input, output, session) {
       mat_val <- if (length(vals$mat_option) == 1L && nzchar(vals$mat_option)) vals$mat_option else "farhan2024"
       ka_m    <- if (length(vals$ka_mode) == 1L && nzchar(vals$ka_mode)) vals$ka_mode else "calibrated"
 
+      rf_fac  <- if (length(vals$rf_pct) == 1L && !is.na(vals$rf_pct)) as.numeric(vals$rf_pct) / 100 else 1.0
+      hep_fac <- if (length(vals$hep_pct) == 1L && !is.na(vals$hep_pct)) as.numeric(vals$hep_pct) / 100 else 1.0
+      ed_pct  <- if (length(vals$edema_pct) == 1L && !is.na(vals$edema_pct)) as.numeric(vals$edema_pct) else 0.0
+      wt_bas  <- if (ed_pct > 0 && length(vals$dose_wt_basis) == 1L && nzchar(vals$dose_wt_basis)) vals$dose_wt_basis else "dry"
+      alb_ov  <- if (identical(vals$alb_mode, "manual") && length(vals$alb_val) == 1L && !is.na(vals$alb_val)) as.numeric(vals$alb_val) else NULL
+      f1_rel  <- if (length(vals$f1_pct) == 1L && !is.na(vals$f1_pct)) as.numeric(vals$f1_pct) / 100 else 1.0
+
       ds_info <- copulapop_dataset_info(ds_name)
 
       pop <- withCallingHandlers(
@@ -277,19 +391,25 @@ server <- function(input, output, session) {
         ))
       }
 
-      res <- withProgress(message = "Monte Carlo PK-simulatie ...", value = 0.70, {
+      res <- withProgress(message = "Monte Carlo PK/PD-simulatie ...", value = 0.70, {
         simulate_population_pk(
           pop,
-          dose_mgkg    = d_mgkg,
-          dose_mg      = d_mg,
-          tau          = tau_val,
-          n_doses      = nd_val,
-          iov_f1_cv    = iov_val,
-          ka_bsv       = (ka_m != "none"),
-          ka_mode      = ka_m,
-          mat_option   = mat_val,
-          steady_state = use_ss,
-          seed         = as.integer((as.numeric(seed) + 1000) %% 2147483647)
+          dose_mgkg         = d_mgkg,
+          dose_mg           = d_mg,
+          tau               = tau_val,
+          n_doses           = nd_val,
+          iov_f1_cv         = iov_val,
+          ka_bsv            = (ka_m != "none"),
+          ka_mode           = ka_m,
+          mat_option        = mat_val,
+          steady_state      = use_ss,
+          seed              = as.integer((as.numeric(seed) + 1000) %% 2147483647),
+          rf_factor         = rf_fac,
+          cl_hep_factor     = hep_fac,
+          edema_pct         = ed_pct,
+          dose_weight_basis = wt_bas,
+          alb_override      = alb_ov,
+          f1_rel            = f1_rel
         )
       })
 
@@ -297,6 +417,12 @@ server <- function(input, output, session) {
         warns <- c(warns, sprintf(
           "Na %d doses (interval %g u) is mediaan %.0f%% van steady-state blootstelling bereikt (mediane t1/2,beta = %.1f u). Verhoog 'Aantal doses' of vink 'Directe analytische steady state' aan voor volledige steady state.",
           nd_val, tau_val, 100 * res$settings$ss_attainment, stats::median(res$metrics$t_half)
+        ))
+      }
+      if (ed_pct > 0 && identical(wt_bas, "actual") && d_mode == "mgkg") {
+        warns <- c(warns, sprintf(
+          "Er wordt nu op actueel oedemateus gewicht (+%g%% overvulling) gedoseerd terwijl UGT1A9-klaring schaalt met het drooggewicht: dit verhoogt de blootstelling met +%g%%.",
+          ed_pct, ed_pct
         ))
       }
 
@@ -316,8 +442,8 @@ server <- function(input, output, session) {
 
       dose_txt <- if (d_mode == "mg") sprintf("%.3g mg", d_mg) else sprintf("%.3g mg/kg", d_mgkg)
       showNotification(
-        sprintf("Simulatie voltooid: N = %d, dosis %s per gift, IOV %g%% CV, seed %d",
-                nrow(pop), dose_txt, iov_val, seed),
+        sprintf("Simulatie voltooid: N = %d, dosis %s per gift, RF %d%%, seed %d",
+                nrow(pop), dose_txt, round(100 * rf_fac), seed),
         type = "message", duration = 5
       )
     }, error = function(e) {
@@ -379,18 +505,29 @@ server <- function(input, output, session) {
     d
   })
 
-  build_curve_plot <- function(s, show_indiv, show_day1, log_y, obs = NULL, pub = FALSE) {
-    st <- s$res$settings
-    cs <- s$res$cs_ss
+  build_curve_plot <- function(s, conc_scale, show_indiv, show_day1, log_y, obs = NULL, pub = FALSE) {
+    st   <- s$res$settings
+    is_u <- identical(conc_scale, "unbound")
+    cs   <- if (is_u) s$res$cs_ss_u else s$res$cs_ss
     if (isTRUE(log_y)) {
       cs <- cs[cs$median > 0 & cs$q95 > 0, , drop = FALSE]
-      cs$q05 <- ifelse(cs$q05 > 0, cs$q05, pmin(cs$median * 0.1, 1e-3))
+      cs$q05 <- ifelse(cs$q05 > 0, cs$q05, pmin(cs$median * 0.1, 1e-4))
     }
 
     dose_lbl_nl <- if (st$dose_mode == "mg") sprintf("%.3g mg", st$dose_mg) else sprintf("%.3g mg/kg", st$dose_mgkg)
     dose_lbl_en <- if (st$dose_mode == "mg") sprintf("%.3g mg", st$dose_mg) else sprintf("%.3g mg/kg per dose", st$dose_mgkg)
     regimen_nl  <- if (isTRUE(st$steady_state)) "analytische steady state" else if (st$n_doses == 1) "eenmalige dosis" else sprintf("dosis %d", st$n_doses)
     regimen_en  <- if (isTRUE(st$steady_state)) "analytical steady state" else if (st$n_doses == 1) "single dose" else sprintf("dose %d", st$n_doses)
+
+    hf_tag_nl <- if (abs(st$rf_factor - 1) > 1e-3 || abs(st$cl_hep_factor - 1) > 1e-3 || !is.na(st$alb_override) || st$edema_pct > 0) {
+      sprintf(" | HF: RF %.0f%%, Hep %.0f%%, fu med. %.3f", 100 * st$rf_factor, 100 * st$cl_hep_factor, stats::median(s$res$metrics$FU))
+    } else ""
+    hf_tag_en <- if (nzchar(hf_tag_nl)) {
+      sprintf(" | HF: RF %.0f%%, Hep %.0f%%, med fu %.3f", 100 * st$rf_factor, 100 * st$cl_hep_factor, stats::median(s$res$metrics$FU))
+    } else ""
+
+    ylab_nl <- if (is_u) "Ongebonden dapagliflozine Cu(t) in plasma (ng/mL)" else "Totale dapagliflozine C(t) in plasma (ng/mL)"
+    ylab_en <- if (is_u) "Unbound plasma dapagliflozin Cu(t) (ng/mL)" else "Total plasma dapagliflozin C(t) (ng/mL)"
 
     p <- ggplot(cs, aes(x = t, y = median)) +
       geom_ribbon(aes(ymin = q05, ymax = q95), fill = "#2c7fb8", alpha = 0.25) +
@@ -399,27 +536,43 @@ server <- function(input, output, session) {
       geom_line(color = "#08306b", linewidth = 1.2) +
       do.call(labs, if (pub) list(
         x = "Time after dose (h)",
-        y = "Plasma dapagliflozin concentration (ng/mL)",
-        title = sprintf("Concentration-time profile (%s, interval %g h)", regimen_en, st$tau),
+        y = ylab_en,
+        title = sprintf("%sconcentration-time profile (%s, interval %g h)",
+                        if (is_u) "Unbound " else "", regimen_en, st$tau),
         subtitle = sprintf(
-          "Median + 90%% PI (P5-P95), N = %d (%s), dose %s, IOV %d%% CV, age %.2f-%.2f y, UGT1A9: %s",
-          st$n, s$dataset, dose_lbl_en, st$iov_f1_cv, min(s$pop$AGE), max(s$pop$AGE), st$mat_label
+          "Median + 90%% PI (P5-P95), N = %d (%s), dose %s, age %.2f-%.2f y, UGT1A9: %s%s",
+          st$n, s$dataset, dose_lbl_en, min(s$pop$AGE), max(s$pop$AGE), st$mat_label, hf_tag_en
         )
       ) else list(
         x = "Tijd na dosis (uur)",
-        y = "Dapagliflozine in plasma (ng/mL)",
-        title = sprintf("Concentratie-tijdcurve (%s, interval %g u)", regimen_nl, st$tau),
+        y = ylab_nl,
+        title = sprintf("%sconcentratie-tijdcurve (%s, interval %g u)",
+                        if (is_u) "Ongebonden " else "Totale ", regimen_nl, st$tau),
         subtitle = sprintf(
-          "Mediaan + 90%% PI (P5-P95), N = %d (%s), dosis %s, IOV %d%% CV, leeftijd %.2f-%.2f j, maturatie: %s",
-          st$n, s$dataset, dose_lbl_nl, st$iov_f1_cv, min(s$pop$AGE), max(s$pop$AGE), st$mat_label
+          "Mediaan + 90%% PI (P5-P95), N = %d (%s), dosis %s, leeftijd %.2f-%.2f j, maturatie: %s%s",
+          st$n, s$dataset, dose_lbl_nl, min(s$pop$AGE), max(s$pop$AGE), st$mat_label, hf_tag_nl
         )
       ))
 
+    if (is_u) {
+      # Toon effectieve Cu,50 (0.20 ng/mL = 50% luminale SGLT2-remming) en Cu,90 (1.80 ng/mL = 90% remming)
+      p <- p +
+        geom_hline(yintercept = 0.20, color = "#1a7f37", linetype = "dotted", linewidth = 0.8) +
+        geom_hline(yintercept = 1.80, color = "#1a7f37", linetype = "dotdash", linewidth = 0.7) +
+        annotate("text", x = st$tau * 0.98, y = 0.22, hjust = 1, vjust = -0.3,
+                 label = if (pub) "50% luminal SGLT2 inh. (Cu,50 = 0.20 ng/mL)" else "50% luminale SGLT2-remming (Cu,50 = 0.20 ng/mL)",
+                 color = "#1a7f37", size = 3.2, fontface = "bold") +
+        annotate("text", x = st$tau * 0.98, y = 1.85, hjust = 1, vjust = -0.3,
+                 label = if (pub) "90% luminal SGLT2 inh. (Cu,90 = 1.80 ng/mL)" else "90% luminale SGLT2-remming (Cu,90 = 1.80 ng/mL)",
+                 color = "#1a7f37", size = 3.2)
+    }
+
     if (isTRUE(show_indiv)) {
       idx <- s$indiv_idx
+      mat_c <- if (is_u) s$res$curve_ss_u else s$res$curve_ss
       indiv <- data.frame(
         t  = rep(s$res$times, each = length(idx)),
-        C  = as.vector(s$res$curve_ss[idx, , drop = FALSE]),
+        C  = as.vector(mat_c[idx, , drop = FALSE]),
         ID = rep(idx, times = length(s$res$times))
       )
       if (isTRUE(log_y)) indiv <- indiv[indiv$C > 0, , drop = FALSE]
@@ -429,7 +582,7 @@ server <- function(input, output, session) {
       }
     }
     if (isTRUE(show_day1)) {
-      cs1 <- s$res$cs_day1
+      cs1 <- if (is_u) s$res$cs_day1_u else s$res$cs_day1
       if (isTRUE(log_y)) cs1 <- cs1[cs1$median > 0, , drop = FALSE]
       if (nrow(cs1) > 0) {
         p <- p + geom_line(data = cs1, aes(x = t, y = median),
@@ -440,13 +593,20 @@ server <- function(input, output, session) {
       }
     }
     if (!is.null(obs) && nrow(obs) > 0) {
-      obs_plot <- if (isTRUE(log_y)) obs[obs$conc > 0, , drop = FALSE] else obs
+      med_fu <- stats::median(s$res$metrics$FU, na.rm = TRUE)
+      obs_plot <- obs
+      if (is_u) obs_plot$conc <- obs_plot$conc * med_fu
+      if (isTRUE(log_y)) obs_plot <- obs_plot[obs_plot$conc > 0, , drop = FALSE]
       if (nrow(obs_plot) > 0) {
+        obs_lbl <- if (is_u) {
+          sprintf(if (pub) "orange = obs x median fu %.3f (n = %d)" else "oranje = gemeten data x mediane fu %.3f (n = %d)", med_fu, nrow(obs_plot))
+        } else {
+          sprintf(if (pub) "orange points = observed data (n = %d)" else "oranje punten = gemeten data (n = %d)", nrow(obs_plot))
+        }
         p <- p + geom_point(data = obs_plot, aes(x = time, y = conc), inherit.aes = FALSE,
                             color = "#D55E00", size = 2.4, alpha = 0.9) +
           annotate("text", x = -Inf, y = Inf, hjust = -0.05, vjust = 1.6,
-                   label = sprintf(if (pub) "orange points = observed data (n = %d)" else "oranje punten = gemeten data (n = %d)", nrow(obs_plot)),
-                   color = "#D55E00", size = 3.5)
+                   label = obs_lbl, color = "#D55E00", size = 3.5)
       }
     }
     if (isTRUE(log_y)) p <- p + scale_y_log10()
@@ -463,7 +623,7 @@ server <- function(input, output, session) {
   output$pk_curve <- renderPlot({
     s <- sim_res(); req(s)
     obs <- if (isTRUE(input$show_obs)) obs_df() else NULL
-    build_curve_plot(s, input$show_indiv, input$show_day1, input$log_y, obs = obs, pub = FALSE)
+    build_curve_plot(s, input$conc_scale, input$show_indiv, input$show_day1, input$log_y, obs = obs, pub = FALSE)
   })
 
   output$dl_fig <- downloadHandler(
@@ -471,7 +631,7 @@ server <- function(input, output, session) {
     content = function(file) {
       s <- sim_res(); req(s)
       obs <- if (isTRUE(input$show_obs)) obs_df() else NULL
-      p <- build_curve_plot(s, input$show_indiv, input$show_day1, input$log_y, obs = obs, pub = TRUE)
+      p <- build_curve_plot(s, input$conc_scale, input$show_indiv, input$show_day1, input$log_y, obs = obs, pub = TRUE)
       fmt <- input$fig_format
       w   <- suppressWarnings(as.numeric(input$fig_width));  if (is.na(w)) w <- 7;  w <- min(max(w, 2), 24)
       h   <- suppressWarnings(as.numeric(input$fig_height)); if (is.na(h)) h <- 5;  h <- min(max(h, 2), 24)
@@ -490,10 +650,284 @@ server <- function(input, output, session) {
     }
   )
 
+  # ---------- Tab: Hartfalen PK/PD & Dosisvoorspelling ----------
+  hf_targets_reactive <- reactive({
+    lo <- suppressWarnings(as.numeric(input$hf_target_lo)); if (is.na(lo) || lo <= 0) lo <- 20
+    hi <- suppressWarnings(as.numeric(input$hf_target_hi)); if (is.na(hi) || hi <= lo) hi <- max(lo + 10, 75)
+    sf <- suppressWarnings(as.numeric(input$hf_safety_max)); if (is.na(sf) || sf < hi) sf <- max(hi + 10, 90)
+    hf_reference_targets(target_lo = lo, target_hi = hi, safety_max = sf)
+  })
+
+  hf_pta_data <- reactive({
+    s <- sim_res(); req(s)
+    tg <- hf_targets_reactive()
+    compute_pta_scan(s$res, target_lo = tg$target_lo, target_hi = tg$target_hi, safety_max = tg$safety_max)
+  })
+
+  hf_ontogeny_data <- reactive({
+    s <- sim_res(); req(s)
+    tg <- hf_targets_reactive()
+    compare_ontogeny_dosing(s$pop, s$res$settings,
+                            target_lo = tg$target_lo, target_hi = tg$target_hi, safety_max = tg$safety_max)
+  })
+
+  hf_lifespan_df <- reactive({
+    s <- sim_res(); req(s)
+    st <- s$res$settings
+    tg <- hf_targets_reactive()
+    generate_pediatric_hf_regimen_table(
+      rf_factor     = st$rf_factor,
+      cl_hep_factor = st$cl_hep_factor,
+      edema_pct     = st$edema_pct,
+      alb_override  = st$alb_override,
+      f1_rel        = st$f1_rel,
+      tau           = st$tau,
+      safety_max    = tg$safety_max
+    )
+  })
+
+  output$hf_kpi_cards <- renderUI({
+    s   <- sim_res(); req(s)
+    pta <- hf_pta_data(); req(pta)
+    ont <- hf_ontogeny_data(); req(ont)
+    m   <- s$res$metrics
+    st  <- s$res$settings
+
+    med_wt <- ont$med_wt_dry
+    start_mg <- min(5.0, ont$start_rec_mgkg * med_wt)
+    targ_lo_mg <- min(10.0, ont$target_min_mgkg * med_wt)
+    targ_hi_mg <- min(10.0, ont$target_max_mgkg * med_wt)
+
+    targ_val_txt <- if (abs(ont$target_max_mgkg - ont$target_min_mgkg) / max(ont$target_min_mgkg, 1e-4) < 0.15) {
+      sprintf("%.2f mg/kg", ont$target_max_mgkg)
+    } else {
+      sprintf("%.2f – %.2f mg/kg", ont$target_min_mgkg, ont$target_max_mgkg)
+    }
+    targ_sub_txt <- if (abs(targ_hi_mg - targ_lo_mg) < 0.08) {
+      sprintf("~%.2f mg per gift (mediaan drooggewicht %.1f kg)", targ_hi_mg, med_wt)
+    } else {
+      sprintf("~%.2f – %.2f mg per gift (Simcyp s1 t/m Farhan 2024)", targ_lo_mg, targ_hi_mg)
+    }
+
+    aucu_ss_med <- stats::median(m$FU * m$AUC0_inf * (24 / st$tau), na.rm = TRUE)
+
+    div(
+      class = "hf-kpi-grid",
+      div(
+        class = "hf-kpi-card",
+        div(class = "hf-kpi-label", "1. Veilige startdosis ('start low')"),
+        div(class = "hf-kpi-value", sprintf("%.2f mg/kg", ont$start_rec_mgkg)),
+        div(class = "hf-kpi-sub", sprintf("~%.2f mg/gift (~5 mg volw. AUCu-eq, conservatief)", start_mg))
+      ),
+      div(
+        class = "hf-kpi-card",
+        div(class = "hf-kpi-label", "2. Streefdosis-bereik (~10 mg DAPA-HF eq)"),
+        div(class = "hf-kpi-value", targ_val_txt),
+        div(class = "hf-kpi-sub", targ_sub_txt)
+      ),
+      div(
+        class = "hf-kpi-card",
+        div(class = "hf-kpi-label", "3. PTA bij huidige dosis (steady state)"),
+        div(class = "hf-kpi-value", sprintf("%.0f%% in doelvenster", pta$cur_pta)),
+        div(class = "hf-kpi-sub", sprintf("Mediane AUCu,24h: %.1f ng*h/mL | > plafond: %.0f%%",
+                                          aucu_ss_med, pta$cur_above_safety))
+      ),
+      div(
+        class = "hf-kpi-card",
+        div(class = "hf-kpi-label", "4. SGLT2-bezetting vs. Renale PD"),
+        div(class = "hf-kpi-value", sprintf("%.0f%% / %.0f%%",
+                                            stats::median(m$SGLT2_inh_avg, na.rm = TRUE),
+                                            stats::median(m$Renal_PD_eff, na.rm = TRUE))),
+        div(class = "hf-kpi-sub", sprintf("Luminale SGLT2-remming vs. GFR-gekoppelde PD (med. eGFR %.0f)",
+                                          stats::median(m$EGFR, na.rm = TRUE)))
+      )
+    )
+  })
+
+  output$hf_alerts_ui <- renderUI({
+    ont <- hf_ontogeny_data(); req(ont)
+    if (length(ont$alerts) == 0L) return(NULL)
+    div(
+      class = "hf-alert-panel",
+      strong("Klinisch-farmacologische aandachtspunten voor deze populatie & PK/PD-instellingen:"),
+      tags$ul(lapply(ont$alerts, tags$li))
+    )
+  })
+
+  output$hf_pta_ontogeny_plot <- renderPlot({
+    s   <- sim_res(); req(s)
+    pta <- hf_pta_data(); req(pta)
+    ont <- hf_ontogeny_data(); req(ont)
+    tg  <- hf_targets_reactive()
+    st  <- s$res$settings
+
+    gdf <- pta$grid_df
+    dose_unit_lbl <- if (st$dose_mode == "mg") "Vaste keerdosis (mg)" else "Keerdosis op gewicht (mg/kg)"
+
+    pta_long <- rbind(
+      data.frame(dose = gdf$dose, pct = gdf$pct_in_target,
+                 cat = sprintf("Binnen doelvenster (%g-%g ng*h/mL)", tg$target_lo, tg$target_hi)),
+      data.frame(dose = gdf$dose, pct = gdf$pct_below,
+                 cat = sprintf("Onder streefvenster (< %g ng*h/mL)", tg$target_lo)),
+      data.frame(dose = gdf$dose, pct = gdf$pct_above_safety,
+                 cat = sprintf("Boven veiligheidsplafond (> %g ng*h/mL)", tg$safety_max))
+    )
+    lvls <- unique(pta_long$cat)
+    pta_long$cat <- factor(pta_long$cat, levels = lvls)
+    cols_pta <- stats::setNames(c("#1a7f37", "#2c7fb8", "#b2182b"), lvls)
+    ltys_pta <- stats::setNames(c("solid", "dotted", "dashed"), lvls)
+
+    p_left <- ggplot(pta_long, aes(x = dose, y = pct, color = cat, linetype = cat)) +
+      geom_line(linewidth = 1.15) +
+      geom_vline(xintercept = pta$cur_dose, color = "#08306b", linewidth = 0.8) +
+      geom_vline(xintercept = pta$dose_opt_pta, color = "#1a7f37", linetype = "dotdash", linewidth = 0.8) +
+      annotate("text", x = pta$cur_dose, y = 97, hjust = -0.08, size = 3.2, fontface = "bold", color = "#08306b",
+               label = sprintf("Huidig: %.3g", pta$cur_dose)) +
+      scale_color_manual(values = cols_pta) +
+      scale_linetype_manual(values = ltys_pta) +
+      coord_cartesian(ylim = c(0, 103)) +
+      labs(
+        title = sprintf("A. Dosis vs. PTA (%s)", st$mat_label),
+        subtitle = sprintf("Max. PTA = %.0f%% bij %.3g %s (groene stippellijn)",
+                           pta$max_pta_pct, pta$dose_opt_pta, if (st$dose_mode == "mg") "mg" else "mg/kg"),
+        x = dose_unit_lbl,
+        y = "Percentage virtuele kinderen (%)",
+        color = NULL, linetype = NULL
+      ) +
+      theme_minimal(base_size = 12.5) +
+      theme(plot.title = element_text(face = "bold", color = "#08306b"),
+            legend.position = "bottom",
+            legend.direction = "vertical")
+
+    ddf <- ont$dist_df
+    y_cap <- max(tg$safety_max * 1.25, stats::quantile(ddf$AUCu_24h, 0.97, na.rm = TRUE))
+    p_right <- ggplot(ddf, aes(x = ontogenie, y = pmin(AUCu_24h, y_cap), fill = ontogenie)) +
+      annotate("rect", xmin = -Inf, xmax = Inf, ymin = tg$target_lo, ymax = tg$target_hi,
+               fill = "#e6f4ea", alpha = 0.75) +
+      geom_hline(yintercept = tg$adult_10mg_hf, color = "#1a7f37", linetype = "dotted", linewidth = 0.8) +
+      geom_hline(yintercept = tg$safety_max, color = "#b2182b", linetype = "dashed", linewidth = 0.85) +
+      geom_boxplot(width = 0.46, outlier.alpha = 0.20, alpha = 0.85, color = "#1f2d3d") +
+      scale_fill_manual(values = c("#9ecae1", "#fdd0a2", "#c7e9c0")) +
+      coord_cartesian(ylim = c(0, y_cap)) +
+      annotate("text", x = 3.45, y = tg$safety_max, hjust = 1, vjust = -0.4, size = 3.1,
+               color = "#b2182b", fontface = "bold", label = sprintf("Plafond (%g ng*h/mL)", tg$safety_max)) +
+      annotate("text", x = 3.45, y = tg$adult_10mg_hf, hjust = 1, vjust = -0.4, size = 3.0,
+               color = "#1a7f37", label = "DAPA-HF 10 mg med. (48.2)") +
+      labs(
+        title = "B. Gevoeligheid voor UGT1A9-ontogenie",
+        subtitle = "Steady-state AUCu,24h bij de huidige dosis (groene band = doelvenster)",
+        x = NULL,
+        y = "Ongebonden AUCu,24h,ss (ng*h/mL)"
+      ) +
+      theme_minimal(base_size = 12.5) +
+      theme(plot.title = element_text(face = "bold", color = "#08306b"),
+            legend.position = "none")
+
+    side_by_side_plots(p_left, p_right)
+  })
+
+  output$hf_ontogeny_table <- renderTable({
+    ont <- hf_ontogeny_data(); req(ont)
+    ont$summary_df
+  }, striped = TRUE, hover = TRUE, width = "100%")
+
+  output$hf_pkpd_plot <- renderPlot({
+    s  <- sim_res(); req(s)
+    st <- s$res$settings
+    m  <- s$res$metrics
+    tg <- hf_targets_reactive()
+
+    cs_occ  <- s$res$cs_sglt2
+    ref_occ <- adult_hf_reference_curves(tau = st$tau, out_by = 0.1)
+
+    p_occ <- ggplot(cs_occ, aes(x = t, y = median)) +
+      geom_ribbon(aes(ymin = q05, ymax = q95), fill = "#2c7fb8", alpha = 0.22) +
+      geom_line(color = "#08306b", linewidth = 1.2) +
+      geom_line(data = ref_occ, aes(x = t, y = SGLT2_inh, linetype = ref, color = ref),
+                inherit.aes = FALSE, linewidth = 0.95) +
+      scale_color_manual(values = c(
+        "Volwassen DAPA-HF ref: 10 mg 1x/dag" = "#b2182b",
+        "Volwassen startdosis ref: 5 mg 1x/dag" = "#d95f02"
+      )) +
+      scale_linetype_manual(values = c(
+        "Volwassen DAPA-HF ref: 10 mg 1x/dag" = "dashed",
+        "Volwassen startdosis ref: 5 mg 1x/dag" = "dotted"
+      )) +
+      coord_cartesian(ylim = c(0, 100)) +
+      labs(
+        title = "A. Luminale SGLT2-receptorbezetting over het interval",
+        subtitle = "Blauw = gesimuleerd kindercohort (mediaan + P5-P95); rood/oranje = volwassen HF ref",
+        x = "Tijd na dosis (uur)",
+        y = "Luminale SGLT2-remming (%)",
+        color = NULL, linetype = NULL
+      ) +
+      theme_minimal(base_size = 12.5) +
+      theme(plot.title = element_text(face = "bold", color = "#08306b"),
+            legend.position = "bottom",
+            legend.direction = "vertical")
+
+    # Rechts: blootstelling-respons curves vs GFR-gelimiteerde renale PD per kind
+    x_max <- max(110, min(220, stats::quantile(m$AUCu_24h, 0.96, na.rm = TRUE) * 1.15))
+    x_seq <- seq(0.5, x_max, length.out = 200)
+    th    <- nonmem_theta()
+    er_curves <- rbind(
+      data.frame(aucu = x_seq, resp = 100 * x_seq / (th$eauc50_u_tgf + x_seq),
+                 as_type = "Cardiorenaal TGF-effect (% Emax; EAUCu50 = 5.2)"),
+      data.frame(aucu = x_seq, resp = 100 * x_seq / (th$eauc50_u_hct + x_seq),
+                 as_type = "Systemisch / HCT-effect (% Emax; EAUCu50 = 20.7)")
+    )
+
+    pts <- m[m$AUCu_24h <= x_max * 1.05, , drop = FALSE]
+    if (nrow(pts) > 600L) {
+      set.seed(42)
+      pts <- pts[sample(nrow(pts), 600L), , drop = FALSE]
+    }
+
+    p_er <- ggplot() +
+      annotate("rect", xmin = tg$target_lo, xmax = tg$target_hi, ymin = -Inf, ymax = Inf,
+               fill = "#e6f4ea", alpha = 0.65) +
+      geom_point(data = pts, aes(x = AUCu_24h, y = Renal_PD_eff, color = EGFR),
+                 alpha = 0.65, size = 1.8) +
+      geom_line(data = er_curves, aes(x = aucu, y = resp, linetype = as_type),
+                color = "#111111", linewidth = 1.0) +
+      scale_color_gradientn(
+        colors = c("#b2182b", "#ef8a62", "#67a9cf", "#08306b"),
+        limits = c(15, 130),
+        oob = scales::squish,
+        name = "eGFR\n(mL/min/1.73m2)"
+      ) +
+      coord_cartesian(xlim = c(0, x_max), ylim = c(0, 115)) +
+      labs(
+        title = "B. Systemische Emax vs. GFR-gekoppelde renale PD",
+        subtitle = "Punten = individuele renale osmotische PD-index (gekleurd naar eGFR); zwarte lijnen = Emax",
+        x = "Ongebonden blootstelling AUCu,24h (ng*h/mL)",
+        y = "Farmacodynamische respons (%)",
+        linetype = NULL
+      ) +
+      theme_minimal(base_size = 12.5) +
+      theme(plot.title = element_text(face = "bold", color = "#08306b"),
+            legend.position = "bottom",
+            legend.box = "vertical")
+
+    side_by_side_plots(p_occ, p_er)
+  })
+
+  output$hf_lifespan_table <- renderTable({
+    hf_lifespan_df()
+  }, striped = TRUE, hover = TRUE, width = "100%")
+
+  output$dl_hf_regimen <- downloadHandler(
+    filename = "dapagliflozine_pediatrisch_hartfalen_doseringstabel.csv",
+    content = function(file) {
+      df <- hf_lifespan_df(); req(df)
+      utils::write.csv(df, file, row.names = FALSE)
+    }
+  )
+
   # ---------- Expositiemetrieken ----------
   output$ss_table <- renderTable({
     s <- sim_res(); req(s)
-    summ <- summarize_metrics(s$res$metrics, tau = s$res$settings$tau)
+    summ <- summarize_metrics(s$res$metrics, tau = s$res$settings$tau, include_pd = TRUE)
     summ[] <- lapply(summ, function(x) if (is.numeric(x)) round(x, 2) else x)
     summ
   }, striped = TRUE, hover = TRUE, width = "100%")
@@ -503,17 +937,17 @@ server <- function(input, output, session) {
     m <- s$res$metrics
     met_long <- data.frame(
       metriek = factor(
-        rep(c("Cmax (ng/mL)", "Cmin (ng/mL)", "AUCtau totaal (ng*h/mL)", "AUCu ongebonden (ng*h/mL)"),
+        rep(c("Cmax totaal (ng/mL)", "AUCtau totaal (ng*h/mL)", "AUCu ongebonden (ng*h/mL)", "SGLT2-remming gem. (%)"),
             each = nrow(m)),
-        levels = c("Cmax (ng/mL)", "Cmin (ng/mL)", "AUCtau totaal (ng*h/mL)", "AUCu ongebonden (ng*h/mL)")
+        levels = c("Cmax totaal (ng/mL)", "AUCtau totaal (ng*h/mL)", "AUCu ongebonden (ng*h/mL)", "SGLT2-remming gem. (%)")
       ),
-      waarde = c(m$Cmax, m$Cmin, m$AUCtau, m$AUCu)
+      waarde = c(m$Cmax, m$AUCtau, m$AUCu, m$SGLT2_inh_avg)
     )
     ggplot(met_long, aes(x = metriek, y = waarde)) +
       geom_boxplot(fill = "#9ecae1", outlier.alpha = 0.4) +
       facet_wrap(~metriek, scales = "free", ncol = 4) +
       labs(x = NULL, y = NULL,
-           title = "Verdeling van expositiemetrieken (totaal en ongebonden) over de virtuele populatie") +
+           title = "Verdeling van PK- en PD-metrieken (totaal, ongebonden & luminale SGLT2-remming)") +
       theme_minimal(base_size = 13) +
       theme(axis.text.x = element_blank(), plot.title = element_text(face = "bold"))
   })
@@ -527,12 +961,13 @@ server <- function(input, output, session) {
     m <- s$res$metrics
     lbls <- sex_labels(m$AGE)
     m$Geslacht <- factor(m$SEXISMALE, levels = c(0, 1), labels = lbls)
-    ggplot(m, aes(x = AGE, y = AUCtau, color = Geslacht)) +
+    ggplot(m, aes(x = AGE, y = AUCu_24h, color = Geslacht)) +
+      geom_hline(yintercept = c(20, 75), linetype = "dashed", color = "#1a7f37", linewidth = 0.6) +
       geom_point(alpha = 0.5) +
       geom_smooth(method = "loess", formula = y ~ x, se = TRUE) +
       scale_color_manual(values = stats::setNames(c("#E69F00", "#0072B2"), lbls)) +
-      labs(x = "Leeftijd (jaren)", y = "AUCtau (ng*h/mL)",
-           title = "Blootstelling (AUCtau) vs leeftijd") +
+      labs(x = "Leeftijd (jaren)", y = "Ongebonden AUCu,24h (ng*h/mL)",
+           title = "Ongebonden blootstelling (AUCu,24h) vs leeftijd (groene lijnen = 20-75 ng*h/mL referenties)") +
       theme_minimal(base_size = 13) +
       theme(plot.title = element_text(face = "bold"))
   })
@@ -543,14 +978,14 @@ server <- function(input, output, session) {
     lbls <- sex_labels(m$AGE)
     m$Geslacht <- factor(m$SEXISMALE, levels = c(0, 1), labels = lbls)
     long <- rbind(
-      data.frame(metriek = "AUCtau (ng*h/mL)", xvariabele = "eGFR (mL/min/1.73m2)",
-                 x = m$EGFR, y = m$AUCtau, Geslacht = m$Geslacht),
-      data.frame(metriek = "AUCtau (ng*h/mL)", xvariabele = "Leeftijd (jaren)",
-                 x = m$AGE, y = m$AUCtau, Geslacht = m$Geslacht),
-      data.frame(metriek = "Cmax (ng/mL)", xvariabele = "eGFR (mL/min/1.73m2)",
-                 x = m$EGFR, y = m$Cmax, Geslacht = m$Geslacht),
-      data.frame(metriek = "Cmax (ng/mL)", xvariabele = "Leeftijd (jaren)",
-                 x = m$AGE, y = m$Cmax, Geslacht = m$Geslacht)
+      data.frame(metriek = "AUCu ongebonden (ng*h/mL)", xvariabele = "eGFR (mL/min/1.73m2)",
+                 x = m$EGFR, y = m$AUCu, Geslacht = m$Geslacht),
+      data.frame(metriek = "AUCu ongebonden (ng*h/mL)", xvariabele = "Leeftijd (jaren)",
+                 x = m$AGE, y = m$AUCu, Geslacht = m$Geslacht),
+      data.frame(metriek = "GFR-gekoppelde renale PD (%)", xvariabele = "eGFR (mL/min/1.73m2)",
+                 x = m$EGFR, y = m$Renal_PD_eff, Geslacht = m$Geslacht),
+      data.frame(metriek = "GFR-gekoppelde renale PD (%)", xvariabele = "Leeftijd (jaren)",
+                 x = m$AGE, y = m$Renal_PD_eff, Geslacht = m$Geslacht)
     )
     ggplot(long, aes(x = x, y = y, color = Geslacht)) +
       geom_point(alpha = 0.4, size = 1.7) +
@@ -558,8 +993,8 @@ server <- function(input, output, session) {
       facet_grid(metriek ~ xvariabele, scales = "free") +
       scale_color_manual(values = stats::setNames(c("#E69F00", "#0072B2"), lbls)) +
       labs(x = NULL, y = NULL,
-           title = "Blootstelling vs nierfunctie (eGFR) en leeftijd",
-           subtitle = "Punten = virtuele individuen; lijn + band = LOESS-trend met 95% CI per panel") +
+           title = "Ongebonden PK (AUCu) én renale PD vs nierfunctie (eGFR) en leeftijd",
+           subtitle = "Toont direct de tegengestelde richting bij lage GFR: AUCu stijgt, terwijl tubulaire osmotische PD daalt") +
       theme_minimal(base_size = 13) +
       theme(plot.title = element_text(face = "bold"),
             strip.text = element_text(face = "bold"),
@@ -571,6 +1006,7 @@ server <- function(input, output, session) {
     s <- sim_res(); req(s)
     pop  <- s$pop
     m    <- s$res$metrics
+    st   <- s$res$settings
     info <- s$dataset_info
     lines <- c(
       sprintf("Dataset: %s", s$dataset),
@@ -581,14 +1017,16 @@ server <- function(input, output, session) {
       sprintf("Gegenereerde virtuele populatie: N = %d (gevraagd: %d)", nrow(pop), s$n_req),
       sprintf("Leeftijd: mediaan %.2f jaar (range %.3f-%.2f)",
               stats::median(pop$AGE), min(pop$AGE), max(pop$AGE)),
-      sprintf("Gewicht (BWT): mediaan %.1f kg (range %.1f-%.1f) | Vetvrije massa (FFM): mediaan %.1f kg",
-              stats::median(pop$WEIGHT), min(pop$WEIGHT), max(pop$WEIGHT), stats::median(m$FFM)),
-      sprintf("BMI: mediaan %.1f kg/m2 | Ongebonden fractie fu: mediaan %.3f (range %.3f-%.3f)",
-              stats::median(pop$BMI), stats::median(m$FU), min(m$FU), max(m$FU)),
-      sprintf("eGFR: mediaan %.0f mL/min/1.73m2 (range %.0f-%.0f)",
-              stats::median(m$EGFR), min(m$EGFR), max(m$EGFR)),
-      sprintf("eGFR-bron: %s", s$res$settings$egfr_source),
-      sprintf("eGFR-eenheid: mL/min/1.73m2 — %s", s$res$settings$egfr_unit_note),
+      sprintf("Actueel gewicht (BWT): mediaan %.1f kg | Drooggewicht: mediaan %.1f kg | Vetvrije massa (FFM): mediaan %.1f kg",
+              stats::median(pop$WEIGHT), stats::median(m$BWT_DRY), stats::median(m$FFM)),
+      sprintf("Serumalbumine: mediaan %.1f g/L | Ongebonden fractie fu: mediaan %.3f (range %.3f-%.3f)",
+              stats::median(m$ALB), stats::median(m$FU), min(m$FU), max(m$FU)),
+      sprintf("Effectieve eGFR: mediaan %.0f mL/min/1.73m2 (range %.0f-%.0f) | Relatieve nierfunctie RF: mediaan %.2f",
+              stats::median(m$EGFR), min(m$EGFR), max(m$EGFR), stats::median(m$RF)),
+      sprintf("Hartfalen- & sondeparameters: cardiorenaal RF x%.2f | hepatische UGT1A9 x%.2f | oedeem +%g%% | F1 %.0f%%",
+              st$rf_factor, st$cl_hep_factor, st$edema_pct, 100 * st$f1_rel),
+      sprintf("eGFR-bron: %s", st$egfr_source),
+      sprintf("eGFR-eenheid: mL/min/1.73m2 — %s", st$egfr_unit_note),
       if (!is.null(info)) sprintf("Dataset bevat serumcreatinine: %s",
                                   if (isTRUE(info$has_creatinine)) "ja" else "nee") else "",
       sprintf("Geslacht: %d%% mannelijk", round(100 * mean(pop$SEXISMALE)))
@@ -602,9 +1040,9 @@ server <- function(input, output, session) {
     m   <- s$res$metrics
     pl <- rbind(
       data.frame(variabele = "Leeftijd (jaren)", waarde = pop$AGE),
-      data.frame(variabele = "Gewicht (kg)", waarde = pop$WEIGHT),
+      data.frame(variabele = "Drooggewicht (kg)", waarde = m$BWT_DRY),
       data.frame(variabele = "Vetvrije massa FFM (kg)", waarde = m$FFM),
-      data.frame(variabele = "eGFR (mL/min/1.73m2)", waarde = m$EGFR)
+      data.frame(variabele = "Effectieve eGFR (mL/min/1.73m2)", waarde = m$EGFR)
     )
     ggplot(pl, aes(x = waarde)) +
       geom_histogram(bins = 30, fill = "#2c7fb8", color = "white") +
@@ -621,7 +1059,9 @@ server <- function(input, output, session) {
     out <- as.data.frame(lapply(pop, function(x) if (is.numeric(x)) round(x, 2) else x))
     if ("EGFR" %in% names(out)) out$EGFR <- NULL
     idx <- if ("ID" %in% names(out)) match(out$ID, m$ID) else seq_len(nrow(out))
+    out[["Drooggewicht (kg)"]] <- round(m$BWT_DRY[idx], 2)
     out[["FFM (kg)"]] <- round(m$FFM[idx], 2)
+    out[["Alb (g/L)"]] <- round(m$ALB[idx], 1)
     out[["fu"]] <- round(m$FU[idx], 3)
     out[["EGFR (mL/min/1.73m2)"]] <- round(m$EGFR[idx], 1)
     head(out, 100)
@@ -632,15 +1072,22 @@ server <- function(input, output, session) {
     filename = "dapagliflozine_pk_curve.csv",
     content = function(file) {
       s <- sim_res(); req(s)
-      write.csv(s$res$cs_ss, file, row.names = FALSE)
+      df_out <- cbind(
+        s$res$cs_ss,
+        Cu_q05    = s$res$cs_ss_u$q05,
+        Cu_median = s$res$cs_ss_u$median,
+        Cu_q95    = s$res$cs_ss_u$q95,
+        SGLT2_inh_median = s$res$cs_sglt2$median
+      )
+      utils::write.csv(df_out, file, row.names = FALSE)
     }
   )
 
   output$dl_metrics <- downloadHandler(
-    filename = "dapagliflozine_pk_metrics.csv",
+    filename = "dapagliflozine_pkpd_metrics.csv",
     content = function(file) {
       s <- sim_res(); req(s)
-      write.csv(s$res$metrics, file, row.names = FALSE)
+      utils::write.csv(s$res$metrics, file, row.names = FALSE)
     }
   )
 }

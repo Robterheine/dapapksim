@@ -246,7 +246,29 @@ dapapksim_reproduce_one <- function(age, bwt, height_m, sex_male = 1, egfr = NUL
 
 ---
 
-## 7. Bronnen
+## 7. Uitbreiding voor pediatrisch hartfalen: pathofysiologie & duale PK–PD (`R/hf_pkpd.R`)
+
+Voor dosisvoorspelling bij **pediatrisch hartfalen** (van pasgeborene tot adolescent) kan het standaard fysiologische model optioneel worden uitgebreid met hartfalen-specifieke pathofysiologie (standaard uitgeschakeld op neutrale referentiewaarden `1.0` / `0%`) en semi-mechanistische PD-uitkomsten:
+
+1. **Extracellulaire overvulling vs. euvolemisch drooggewicht (`edema_pct`):**
+   Bij percentage overvulling \(\text{FO}\) (`%` boven drooggewicht) geldt:
+   $$W_{\text{droog}} = \frac{\text{BWT}}{1 + \text{FO}/100}, \qquad V_{\text{oedeem}} = \text{BWT} - W_{\text{droog}}\text{ (L)}$$
+   Omdat oedeemvocht geen hepatocyten of niertubuli bevat, worden `FFM`, `NFM_CL`, `NFM_V2` en lipofiel \(V_3\) berekend uit \(W_{\text{droog}}\), terwijl het centrale/interstitiële verdelingsvolume wordt uitgebreid met \(+V_{\text{oedeem}}\).
+2. **Cardiorenaal syndroom (`rf_factor`), hepatische stuwing (`cl_hep_factor`), hypoalbuminemie (`alb_override`) en sonde-opname (`f1_rel`):**
+   - \(\text{eGFR}_{\text{eff}} = \min\!\left(180, \max(5, \; \text{eGFR} \cdot f_{\text{RF}})\right)\), waarmee zowel proximaal tubulaire UGT1A9-klaring (`15.78 · MAT · Fsize_CL · RF`) als passieve filtratie daalt bij verminderde renale perfusie (ook bij zuigelingen `< 1 j` waar `copulapop` geen creatinine gebruikt).
+   - \(CL_{\text{hep}} = \text{fu\_ratio} \cdot 5.44 \cdot \text{MAT} \cdot F_{\text{size},CL} \cdot f_{\text{hep}}\) voor verminderde hepatische glucuronidering bij verhoogde centraal-veneuze druk (rechtszijdig falen / Fontan).
+   - Handmatig ingesteld serumalbumine verhoogt bij hypoalbuminemie of *protein-losing enteropathy* de vrije fractie \(f_u\), waardoor totale \(C(t)\) en \(\text{AUC}_\tau\) dalen terwijl de farmacologisch actieve vrije concentratie \(C_u(t) = f_u C(t)\) en \(\text{AUC}_{u,24\text{h}}\) ongewijzigd blijven.
+   - Gemiddelde relatieve biologische beschikbaarheid \(F_{1,\text{rel}}\) schaalt de toegediende orale/enterale dosis voor sonde- of suspensieverlies.
+3. **Semi-mechanistische duale PK–PD relaties:**
+   - **Proximale tubulaire luminale SGLT2-receptorbezetting:** met humane SGLT2 \(\text{IC}_{50} = 1.1\text{ nM} = 0.45\text{ ng/mL}\) en proximale S1/S2 waterresorptie-concentratiefactor \(\phi_{\text{PT}} = 2.25\) (Yakovleva et al. 2014) bedraagt de effectieve vrije plasmaconcentratie voor 50% luminale bezetting \(C_{u,50} = 0.20\text{ ng/mL}\):
+     $$O_{\text{SGLT2}}(t) = \frac{100 \cdot C_u(t)}{0.20 + C_u(t)}\text{ (\%)}, \qquad \overline{O}_{\text{SGLT2}} = \frac{1}{\tau}\int_0^\tau O_{\text{SGLT2}}(t)\,dt$$
+   - **GFR-gekoppelde effectieve renale osmotische/natriuretische PD-index:** corrigeert de SGLT2-blokkade voor de glomerulair gefiltreerde solute-aanvoer naar de proximale tubulus:
+     $$\text{PD}_{\text{renaal,eff}} = \overline{O}_{\text{SGLT2}} \cdot \min\!\left(1.5, \; \frac{\text{eGFR}_{\text{eff}}}{100}\right)$$
+   - **Systemische/cardiorenaal-pleiotrope \(E_{\max}\)-responsen (Kroonen et al. 2020):** op basis van gepubliceerde klinische blootstelling-responsmodellen omgerekend naar vrije 24-uurs steady-state blootstelling (\(\text{EAUC}_{u,50,\text{TGF}} = 5.2\text{ ng·h/mL}\), \(\text{EAUC}_{u,50,\text{HCT}} = 20.7\text{ ng·h/mL}\)).
+
+---
+
+## 8. Bronnen
 
 1. Penland RC et al. *J Clin Pharmacol* 2023;63:551–559 — [doi:10.1002/jcph.2196](https://doi.org/10.1002/jcph.2196).
 2. Al-Sallami HS et al. *Clin Pharmacokinet* 2015;54:1197–1208 — [doi:10.1007/s40262-015-0285-z](https://doi.org/10.1007/s40262-015-0285-z).
@@ -261,12 +283,15 @@ dapapksim_reproduce_one <- function(age, bwt, height_m, sex_male = 1, egfr = NUL
 11. Tirucherai GS et al. *Diabetes Obes Metab* 2016;18:678–684 — [doi:10.1111/dom.12638](https://doi.org/10.1111/dom.12638).
 12. Kasichayanula S et al. *Clin Pharmacokinet* 2014;53:17–27 — [doi:10.1007/s40262-013-0104-3](https://doi.org/10.1007/s40262-013-0104-3).
 13. Zwep LHM et al. *Clin Pharmacol Ther* 2024;115:795–804 — [doi:10.1002/cpt.3099](https://doi.org/10.1002/cpt.3099) (`copulapop`).
+14. Kroonen MYAM et al. *Br J Clin Pharmacol* 2020;86:1905–1916 — [doi:10.1111/bcp.14318](https://doi.org/10.1111/bcp.14318) (blootstelling-respons van dapagliflozine op cardiorenaal-markers).
+15. Yakovleva T et al. *Front Pharmacol* 2014;5:218 — [doi:10.3389/fphar.2014.00218](https://doi.org/10.3389/fphar.2014.00218) (semi-mechanistische luminale SGLT2-modellering).
 
-## 8. Beperkingen
+## 9. Beperkingen
 
 - Extrapolatie onder ~1 jaar berust op mechanistische fysiologische ontogenie (UGT1A9, GFR,
   albumine, GI-absorptie) en PBPK-verificatie; gepubliceerde klinische PK-data van dapagliflozine
   bij neonaten en jonge zuigelingen zijn nog beperkt.
-- Virtuele `copulapop`-populaties representeren algemene of ziekenhuispopulaties, geen
-  specifieke T2DM- of hartfalencohorten.
+- Virtuele `copulapop`-populaties representeren algemene of ziekenhuispopulaties; de hartfalen-opties
+  (`rf_factor`, `cl_hep_factor`, `edema_pct`, `alb_override`) bieden mechanistische scenario-analyse,
+  maar vervangen geen prospectieve klinische PK/PD-validatie in pediatrisch hartfalen.
 - Onderzoeks- en educatief simulatiemodel — geen gevalideerd klinisch doseringsadvies.

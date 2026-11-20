@@ -17,10 +17,13 @@ populatie-PK model. Virtuele patiëntenpopulaties worden gegenereerd met het
 - **Vrije leeftijdsrange (pasgeborene t/m oudere)**: fijne numerieke invoer voor
   minimum- en maximumleeftijd (bv. `0–0.08` jaar voor neonaten, `0.08–2` jaar voor
   zuigelingen/peuters, `10–17` jaar voor adolescenten, of `18–100` jaar voor volwassenen).
-- **Totale én ongebonden expositiemetrieken**: `Cmax,ss`, `Tmax`, `Cmin,ss (= C(τ))`,
-  `AUCtau,ss` (totaal), **`AUCu,ss` (ongebonden, gecorrigeerd voor albumine-ontogenie)**,
-  `Cavg,ss` en terminale halfwaardetijd `t1/2,β` — als populatiesamenvatting (mediaan,
-  geometrisch gemiddelde en `[P5–P95]`) én per individu.
+- **Totale én ongebonden expositiemetrieken + PK-curve**: `Cmax,ss`, `Tmax`, `Cmin,ss (= C(τ))`,
+  `AUCtau,ss` (totaal), **`AUCu,ss` en `AUCu,24h` (ongebonden, gecorrigeerd voor albumine-ontogenie en hypoalbuminemie)**,
+  `Cavg,ss`, terminale halfwaardetijd `t1/2,β`, én directe weergave van de **ongebonden plasmacurve `Cu(t)` met luminale SGLT2-drempels**.
+- **Pediatrisch hartfalen: pathofysiologie, duale PK–PD & dosisvoorspelling (`R/hf_pkpd.R`)**:
+  - Klinische hartfalenprofielen en fijnafstelling voor **cardiorenale hypoperfusie (`RF`)**, **hepatische stuwing** (bv. biventriculair falen / Fontan), **extracellulair oedeem boven drooggewicht**, **hypoalbuminemie / PLE** en **relatieve biologische beschikbaarheid `F1`** bij sonde-/suspensietoediening.
+  - **Probability of Target Attainment (PTA)** scan op steady-state `AUCu,24h` + directe gevoeligheidsvergelijking over alle drie UGT1A9-ontogeniefuncties en een leeftijdsgestratificeerde referentietabel (`0 mnd – 18 jaar`).
+  - **Semi-mechanistische PK–PD koppeling**: onderscheid tussen proximaal tubulaire luminale SGLT2-receptorbezetting (`%`), `GFR`-gekoppelde effectieve renale osmotische/natriuretische PD-drive (`%`) en systemische cardiorenaal `Emax`-responsen.
 - **Drie gevalideerde UGT1A9-maturatiefuncties** (werkzaam op zowel hepatische als
   renale tubulaire UGT1A9-glucuronidering):
   1. **Farhan et al. 2024** (*in-vivo* UGT1A9, standaard)
@@ -65,10 +68,12 @@ in R in: `copulapop::set_data_path(system.file("data", package = "copulapop"))`.
 dapapksim/
 ├── app.R                       # Shiny UI + server (Nederlands)
 ├── R/
-│   ├── pk_model.R              # Fysiologisch 6-pijler popPK-model + analytische ADVAN4-solver
+│   ├── pk_model.R              # Fysiologisch 6-pijler popPK-model + analytische ADVAN4-solver + PD
+│   ├── hf_pkpd.R               # Pediatrisch hartfalen: pathofysiologie, PTA & duale PK-PD module
 │   └── population.R            # Adaptieve wrapper rond copulapop::generate_population()
 ├── scripts/
 │   └── validate_model.R        # Reproduceerbare R-validatiesuite & SVG-figuurgenerator
+├── hf_pkpd_rationale.md        # Wetenschappelijke PK- en PD-rationale voor pediatrisch hartfalen
 ├── model_doc.md                # Modelbeschrijving, fysiologische aannames en bronnen (tab in app)
 ├── VALIDATION.md               # Samenvattende validatie (Nederlands)
 ├── docs/
