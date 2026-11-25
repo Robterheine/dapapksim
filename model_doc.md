@@ -1,11 +1,6 @@
-# Model, fysiologische onderbouwing & volledige reproduceerbaarheid
+# Volledige wiskundige, algoritmische & NONMEM-reproduceerbare modelspecificatie
 
-Deze pagina bevat de **volledige wiskundige, fysiologische en algoritmische specificatie**
-van het in **dapapksim** geïmplementeerde populatie-PK model (`R/pk_model.R` en `R/population.R`).
-Alle vergelijkingen, parameterwaarden, randvoorwaarden, stochastische trekkingen en de
-gesloten-vorm solver zijn hieronder volledig uitgeschreven — inclusief een zelfstandig
-uitvoerbaar R-referentieblok in §6 — zodat het model **100% reproduceerbaar** is op basis
-van uitsluitend de informatie in deze app.
+Deze sub-pagina bevat de **exacte wiskundige vergelijkingen, parameterwaarden, randvoorwaarden, stochastische trekkingen en gesloten-vorm `ADVAN4`-solver** van **dapapksim** (`R/pk_model.R`, `R/population.R` en `R/hf_pkpd.R`). Zie sub-tabblad **1 (*Stapsgewijze Fysiologische Afleiding & Kalibratie*)** voor de inhoudelijke klinisch-farmacologische uitleg en kalibratie-achtergrond. Naast het zelfstandige R-referentieblok in §6 bevat de map **`nonmem/`** in de repository een kant-en-klare NONMEM 7.x control stream (`nonmem/dapa_ped_hf_sim.ctl`) met een 1-kind voorbeelddataset (`nonmem/example_child_hf.csv`) voor directe reproductie in NONMEM.
 
 ---
 

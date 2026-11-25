@@ -337,7 +337,23 @@ ui <- fluidPage(
         ),
         tabPanel(
           "Model & assumpties",
-          withMathJax(div(class = "md-doc", include_math_md("model_doc.md")))
+          div(
+            class = "hf-subtabs",
+            withMathJax(
+              tabsetPanel(
+                id = "model_inner_tabs",
+                type = "pills",
+                tabPanel(
+                  "1. Stapsgewijze Fysiologische Afleiding & Kalibratie",
+                  div(class = "md-doc", include_math_md("model_rationale.md"))
+                ),
+                tabPanel(
+                  "2. Volledige Wiskundige Formules & Reproductie (R / NONMEM)",
+                  div(class = "md-doc", include_math_md("model_doc.md"))
+                )
+              )
+            )
+          )
         ),
         tabPanel(
           "Validatie",
