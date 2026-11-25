@@ -45,9 +45,65 @@ side_by_side_plots <- function(p_left, p_right) {
   print(p_left,  vp = grid::viewport(layout.pos.row = 1, layout.pos.col = 1))
   print(p_right, vp = grid::viewport(layout.pos.row = 1, layout.pos.col = 2))
 }
+# Gebruik MathJax CommonHTML i.p.v. Safari's gebrekkige NativeMML-fallback (voorkomt ontbrekende symbolen)
+options(shiny.mathjax.config = "config=TeX-AMS_CHTML")
+
+# Render Markdown waarbij zowel display-formules ($$...$$, \[...\]) als inline-formules (\(...\))
+# eerst tegen CommonMark-escaping worden beschermd zodat \(, \), _ en \\ intact aan MathJax worden doorgegeven.
+include_math_md <- function(path) {
+  txt <- paste(readLines(path, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+
+  mask_pattern <- function(s, pat, store_env, prefix) {
+    m <- gregexpr(pat, s, perl = TRUE)
+    hits <- regmatches(s, m)[[1]]
+    if (length(hits) == 0L) return(s)
+    start_idx <- length(store_env$items)
+    tokens <- sprintf("%s%04dEND", prefix, start_idx + seq_along(hits))
+    store_env$items <- c(store_env$items, hits)
+    regmatches(s, m) <- list(tokens)
+    s
+  }
+
+  c_env <- new.env(parent = emptyenv()); c_env$items <- character(0)
+  txt <- mask_pattern(txt, "(?s)```.*?```", c_env, "MDCODETOKEN")
+  txt <- mask_pattern(txt, "`[^`\\n]+`",   c_env, "MDCODETOKEN")
+
+  m_env <- new.env(parent = emptyenv()); m_env$items <- character(0)
+  txt <- mask_pattern(txt, "(?s)\\$\\$.+?\\$\\$",     m_env, "MDMATHTOKEN")
+  txt <- mask_pattern(txt, "(?s)\\\\\\[.+?\\\\\\]",   m_env, "MDMATHTOKEN")
+  txt <- mask_pattern(txt, "(?s)\\\\\\(.+?\\\\\\)",   m_env, "MDMATHTOKEN")
+
+  for (i in seq_along(c_env$items)) {
+    txt <- gsub(sprintf("MDCODETOKEN%04dEND", i), c_env$items[[i]], txt, fixed = TRUE)
+  }
+
+  tmp <- tempfile(fileext = ".md")
+  on.exit(unlink(tmp), add = TRUE)
+  writeLines(enc2utf8(txt), tmp, useBytes = TRUE)
+  html <- as.character(shiny::includeMarkdown(tmp))
+
+  for (i in seq_along(m_env$items)) {
+    esc_math <- m_env$items[[i]]
+    esc_math <- gsub("&", "&amp;", esc_math, fixed = TRUE)
+    esc_math <- gsub("<", "&lt;",  esc_math, fixed = TRUE)
+    esc_math <- gsub(">", "&gt;",  esc_math, fixed = TRUE)
+    html <- gsub(sprintf("MDMATHTOKEN%04dEND", i), esc_math, html, fixed = TRUE)
+  }
+
+  htmltools::HTML(html)
+}
 
 ui <- fluidPage(
-  tags$head(tags$link(rel = "stylesheet", type = "text/css", href = "style.css")),
+  tags$head(
+    tags$link(rel = "stylesheet", type = "text/css", href = "style.css"),
+    tags$script(HTML("
+      $(document).on('shown.bs.tab', 'a[data-toggle=\"tab\"], a[data-toggle=\"pill\"]', function() {
+        if (window.MathJax && MathJax.Hub) {
+          MathJax.Hub.Queue(['Typeset', MathJax.Hub]);
+        }
+      });
+    "))
+  ),
   titlePanel("Dapagliflozine PK/PD & fysiologische dosisextrapolatie — incl. pediatrisch hartfalen"),
   sidebarLayout(
     sidebarPanel(
@@ -256,7 +312,7 @@ ui <- fluidPage(
               ),
               tabPanel(
                 "4. Methodologische Onderbouwing & Bronnen",
-                withMathJax(div(class = "md-doc", includeMarkdown("hf_pkpd_rationale.md")))
+                withMathJax(div(class = "md-doc", include_math_md("hf_pkpd_rationale.md")))
               )
             )
           )
@@ -281,7 +337,7 @@ ui <- fluidPage(
         ),
         tabPanel(
           "Model & assumpties",
-          withMathJax(div(class = "md-doc", includeMarkdown("model_doc.md")))
+          withMathJax(div(class = "md-doc", include_math_md("model_doc.md")))
         ),
         tabPanel(
           "Validatie",

@@ -93,7 +93,7 @@ Volgens **McNamara & Alcorn 2002** (met \(\text{days} = \max(1.0, \; 365.25 \tim
 
 $$[\text{Alb}](\text{AGE}) = \begin{cases} 44.0\text{ g/L} & \text{als AGE} \ge 18 \\ \min\!\left(44.0, \; 1.1287 \ln(\text{days}) + 33.746\right)\text{ g/L} & \text{als AGE} < 18 \end{cases}$$
 
-$$f_u(\text{AGE}) = \frac{1}{1 + \dfrac{[\text{Alb}](\text{AGE})}{44.0} \cdot \dfrac{1 - 0.086}{0.086}}, \qquad \text{fu\_ratio} = \frac{f_u(\text{AGE})}{0.086}$$
+$$f_u(\text{AGE}) = \frac{1}{1 + \dfrac{[\text{Alb}](\text{AGE})}{44.0} \cdot \dfrac{1 - 0.086}{0.086}}, \qquad f_{u,\text{ratio}} = \frac{f_u(\text{AGE})}{0.086}$$
 
 ### 3.5 Nierfunctie-ontogenie (`ngfr_rhodin()`) en individuele `eGFR` (`egfr_from_copula()`)
 
@@ -110,10 +110,10 @@ $$f_u(\text{AGE}) = \frac{1}{1 + \dfrac{[\text{Alb}](\text{AGE})}{44.0} \cdot \d
        $$\text{eGFR} = 142 \cdot \min(\text{SCr}/\kappa, 1)^{\alpha} \cdot \max(\text{SCr}/\kappa, 1)^{-1.200} \cdot 0.9938^{\text{AGE}} \cdot f_{\text{sex}}$$
      - **Kinderen en adolescenten (\(1 \le \text{AGE} < 18\text{ j}\), Pierce et al. 2021 CKiD U25):**
        $$k = \begin{cases} 39.0 \cdot 1.008^{\text{AGE}-12} & \text{man, AGE} < 12 \\ 39.0 \cdot 1.045^{\text{AGE}-12} & \text{man, } 12 \le \text{AGE} < 18 \\ 36.1 \cdot 1.008^{\text{AGE}-12} & \text{vrouw, AGE} < 12 \\ 36.1 \cdot 1.023^{\text{AGE}-12} & \text{vrouw, } 12 \le \text{AGE} < 18 \end{cases}, \qquad \text{eGFR} = \frac{k \cdot \text{HEIGHT}_m}{\text{SCr}}$$
-     - **Zuigelingen (\(\text{AGE} < 1\text{ j}\)):** \(\text{eGFR} = \text{nGFR}(\text{AGE}, \text{BWT}) \cdot \exp(\eta_{\text{GFR}})\) met \(\eta_{\text{GFR}} \sim \mathcal{N}(0, 0.215^2)\).
+     - **Zuigelingen (\(\text{AGE} < 1\text{ j}\)):** \(\text{eGFR} = \text{nGFR}(\text{AGE}, \text{BWT}) \cdot \exp(\eta_{\text{GFR}})\) met \(\eta_{\text{GFR}} \sim \mathrm{N}(0, 0.215^2)\).
      - Alle waarden worden begrensd op **`[5, 180] mL/min/1.73m²`**.
    - **Indien `CREAT` ontbreekt (`NHANES`, `HSE`):**
-     $$\text{eGFR} = \min\!\left(180, \; \max\!\left(5, \; \text{nGFR}(\text{AGE}, \text{BWT}) \cdot \exp(\eta_{\text{GFR}})\right)\right), \qquad \eta_{\text{GFR}} \sim \mathcal{N}(0, 0.215^2)$$
+     $$\text{eGFR} = \min\!\left(180, \; \max\!\left(5, \; \text{nGFR}(\text{AGE}, \text{BWT}) \cdot \exp(\eta_{\text{GFR}})\right)\right), \qquad \eta_{\text{GFR}} \sim \mathrm{N}(0, 0.215^2)$$
 
 3. **Relatieve nierfunctie (`RF`) en afleiding van de 3-paden klaring:**
    $$\text{RF} = \min\!\left(1.75, \; \max\!\left(0, \; \frac{\text{eGFR}}{\max(\text{nGFR}(\text{AGE}, \text{BWT}), 1.0)}\right)\right)$$
@@ -130,9 +130,9 @@ $$f_u(\text{AGE}) = \frac{1}{1 + \dfrac{[\text{Alb}](\text{AGE})}{44.0} \cdot \d
 
 ### 3.7 Typische individuele PK-parameters (`individual_params()`)
 
-$$CL_{\text{tv}} = \text{fu\_ratio} \cdot \left[5.44 \cdot \text{MAT} \cdot F_{\text{size},CL} + 15.78 \cdot \text{MAT} \cdot F_{\text{size},CL} \cdot \text{RF} + 0.011 \cdot \text{eGFR} \cdot \left(\frac{\text{BSA}}{2.0}\right)\right]$$
+$$CL_{\text{tv}} = f_{u,\text{ratio}} \cdot \left[5.44 \cdot \text{MAT} \cdot F_{\text{size},CL} + 15.78 \cdot \text{MAT} \cdot F_{\text{size},CL} \cdot \text{RF} + 0.011 \cdot \text{eGFR} \cdot \left(\frac{\text{BSA}}{2.0}\right)\right]$$
 
-$$V_{2,\text{tv}} = 73.47 \cdot F_{\text{size},V_2}, \qquad V_{3,\text{tv}} = 168.5 \cdot \left(\frac{\text{BWT}}{84.0}\right) \cdot \text{fu\_ratio}, \qquad Q_{\text{tv}} = 9.137 \cdot F_{\text{size},CL}$$
+$$V_{2,\text{tv}} = 73.47 \cdot F_{\text{size},V_2}, \qquad V_{3,\text{tv}} = 168.5 \cdot \left(\frac{\text{BWT}}{84.0}\right) \cdot f_{u,\text{ratio}}, \qquad Q_{\text{tv}} = 9.137 \cdot F_{\text{size},CL}$$
 
 $$K_{a,\text{tv}} = 2.833 \cdot \left(0.45 + 0.55 \cdot \frac{\text{AGE}}{0.10 + \text{AGE}}\right), \qquad \text{ALAG}_1 = 0.5\text{ h}$$
 
@@ -140,14 +140,14 @@ $$K_{a,\text{tv}} = 2.833 \cdot \left(0.45 + 0.55 \cdot \frac{\text{AGE}}{0.10 +
 
 ## 4. Stochastische variabiliteit (`IIV` en `IOV`)
 
-- **Inter-individuele variabiliteit (`IIV`, log-normaal):**
-  $$CL_i = CL_{\text{tv},i} \exp(\eta_{2,i}), \quad \eta_{2,i} \sim \mathcal{N}(0, 0.1136)$$
-  $$V_{3,i} = V_{3,\text{tv},i} \exp(\eta_{3,i}), \quad \eta_{3,i} \sim \mathcal{N}(0, 0.8229)$$
-  $$K_{a,i} = \min\!\left(50, \; \max\!\left(0.02, \; K_{a,\text{tv},i} \exp(\eta_{1,i})\right)\right), \quad \eta_{1,i} \sim \mathcal{N}(0, \omega^2_{Ka})$$
+- **Inter-individuele variabiliteit (`IIV`, log-normaal; waarbij \(\mathrm{N}(\mu, \omega^2)\) een normale verdeling met gemiddelde \(\mu\) en variantie \(\omega^2\) aanduidt):**
+  $$CL_i = CL_{\text{tv},i} \exp(\eta_{2,i}), \quad \eta_{2,i} \sim \mathrm{N}(0, 0.1136)$$
+  $$V_{3,i} = V_{3,\text{tv},i} \exp(\eta_{3,i}), \quad \eta_{3,i} \sim \mathrm{N}(0, 0.8229)$$
+  $$K_{a,i} = \min\!\left(50, \; \max\!\left(0.02, \; K_{a,\text{tv},i} \exp(\eta_{1,i})\right)\right), \quad \eta_{1,i} \sim \mathrm{N}(0, \omega^2_{Ka})$$
   met \(\omega^2_{Ka} = 0.36\) (`calibrated`, standaard), \(8.52\) (`penland_raw`), of \(0\) (`none`). Geen `IIV` op \(V_2\) en \(Q\).
 - **Inter-occasion variabiliteit (`IOV` op relatieve biologische beschikbaarheid `F1`):**
-  Voor opgegeven `iov_cv` (`%CV`) geldt \(\sigma_{\text{IOV}} = \sqrt{\ln\!\left(1 + (\text{iov\_cv}/100)^2\right)}\). Per toediening \(d\) wordt een onafhankelijke mean-gecentreerde multiplier getrokken zodat \(\mathbb{E}[F_{1,i,d}] = 1.0\):
-  $$F_{1,i,d} = \exp(\kappa_{i,d}), \qquad \kappa_{i,d} \sim \mathcal{N}\!\left(-\tfrac{1}{2}\sigma_{\text{IOV}}^2, \; \sigma_{\text{IOV}}^2\right), \qquad D_{i,d} = 1000 \cdot \text{DOSE\_MG}_i \cdot F_{1,i,d}\text{ (µg)}$$
+  Voor opgegeven `iov_cv` (`%CV`) geldt \(\sigma_{\text{IOV}} = \sqrt{\ln\!\left(1 + (\text{IOV}_{\text{CV}}/100)^2\right)}\). Per toediening \(d\) wordt een onafhankelijke mean-gecentreerde multiplier getrokken zodat \(\mathrm{E}[F_{1,i,d}] = 1.0\):
+  $$F_{1,i,d} = \exp(\kappa_{i,d}), \qquad \kappa_{i,d} \sim \mathrm{N}\!\left(-\tfrac{1}{2}\sigma_{\text{IOV}}^2, \; \sigma_{\text{IOV}}^2\right), \qquad D_{i,d} = 1000 \cdot \text{Dosis}_{\text{mg},i} \cdot F_{1,i,d}\text{ (µg)}$$
 - **Residuele fout (`$SIGMA / EPS`)** wordt bewust **niet** gesimuleerd zodat de 90%-band het zuivere populatie-predictie-interval (`P5–P95`) over individuen weergeeft.
 
 ---
@@ -168,8 +168,8 @@ $$\Phi_{31}(t) = K_a k_{12}\left(c_a E_a + c_1 E_\alpha + c_2 E_\beta\right)$$
 $$\Phi_{22}(t) = \frac{(\alpha - k_{21})E_\alpha + (k_{21} - \beta)E_\beta}{\alpha - \beta}, \qquad \Phi_{23}(t) = \frac{k_{21}(E_\beta - E_\alpha)}{\alpha - \beta}$$
 $$\Phi_{32}(t) = \frac{k_{12}(E_\beta - E_\alpha)}{\alpha - \beta}, \qquad \Phi_{33}(t) = \frac{(k_{21} - \beta)E_\alpha + (\alpha - k_{21})E_\beta}{\alpha - \beta}$$
 
-- **Toestandsverloop binnen doseringsinterval \([0, \tau]\) met lagtijd \(t_{\text{lag}} = 0.5\text{ h}\) (\(\tau > t_{\text{lag}}\)):**
-  $$\mathbf{A}(t) = \Phi(t)\mathbf{A}(0) + \mathbb{I}(t > t_{\text{lag}}) D_d \begin{pmatrix} \Phi_{11}(t - t_{\text{lag}}) \\ \Phi_{21}(t - t_{\text{lag}}) \\ \Phi_{31}(t - t_{\text{lag}}) \end{pmatrix}$$
+- **Toestandsverloop binnen doseringsinterval \([0, \tau]\) met lagtijd \(t_{\text{lag}} = 0.5\text{ h}\) (\(\tau > t_{\text{lag}}\), indicatorfunctie \(\mathbf{1}(t > t_{\text{lag}})\)):**
+  $$\mathbf{A}(t) = \Phi(t)\mathbf{A}(0) + \mathbf{1}(t > t_{\text{lag}}) D_d \begin{pmatrix} \Phi_{11}(t - t_{\text{lag}}) \\ \Phi_{21}(t - t_{\text{lag}}) \\ \Phi_{31}(t - t_{\text{lag}}) \end{pmatrix}$$
 - **Directe analytische steady state (bij `steady_state = TRUE` en `IOV = 0%`):**
   Uit \(\mathbf{A}_{ss}(0) = \Phi(\tau)\mathbf{A}_{ss}(0) + D\boldsymbol{\phi}_1(\tau - t_{\text{lag}})\) volgt direct:
   $$A_{1,ss}(0) = \frac{D\Phi_{11}(\tau - t_{\text{lag}})}{1 - \Phi_{11}(\tau)}, \qquad \begin{pmatrix} 1 - \Phi_{22}(\tau) & -\Phi_{23}(\tau) \\ -\Phi_{32}(\tau) & 1 - \Phi_{33}(\tau) \end{pmatrix} \begin{pmatrix} A_{2,ss}(0) \\ A_{3,ss}(0) \end{pmatrix} = \begin{pmatrix} D\Phi_{21}(\tau - t_{\text{lag}}) + \Phi_{21}(\tau)A_{1,ss}(0) \\ D\Phi_{31}(\tau - t_{\text{lag}}) + \Phi_{31}(\tau)A_{1,ss}(0) \end{pmatrix}$$
@@ -256,7 +256,7 @@ Voor dosisvoorspelling bij **pediatrisch hartfalen** (van pasgeborene tot adoles
    Omdat oedeemvocht geen hepatocyten of niertubuli bevat, worden `FFM`, `NFM_CL`, `NFM_V2` en lipofiel \(V_3\) berekend uit \(W_{\text{droog}}\), terwijl het centrale/interstitiële verdelingsvolume wordt uitgebreid met \(+V_{\text{oedeem}}\).
 2. **Cardiorenaal syndroom (`rf_factor`), hepatische stuwing (`cl_hep_factor`), hypoalbuminemie (`alb_override`) en sonde-opname (`f1_rel`):**
    - \(\text{eGFR}_{\text{eff}} = \min\!\left(180, \max(5, \; \text{eGFR} \cdot f_{\text{RF}})\right)\), waarmee zowel proximaal tubulaire UGT1A9-klaring (`15.78 · MAT · Fsize_CL · RF`) als passieve filtratie daalt bij verminderde renale perfusie (ook bij zuigelingen `< 1 j` waar `copulapop` geen creatinine gebruikt).
-   - \(CL_{\text{hep}} = \text{fu\_ratio} \cdot 5.44 \cdot \text{MAT} \cdot F_{\text{size},CL} \cdot f_{\text{hep}}\) voor verminderde hepatische glucuronidering bij verhoogde centraal-veneuze druk (rechtszijdig falen / Fontan).
+   - \(CL_{\text{hep}} = f_{u,\text{ratio}} \cdot 5.44 \cdot \text{MAT} \cdot F_{\text{size},CL} \cdot f_{\text{hep}}\) voor verminderde hepatische glucuronidering bij verhoogde centraal-veneuze druk (rechtszijdig falen / Fontan).
    - Handmatig ingesteld serumalbumine verhoogt bij hypoalbuminemie of *protein-losing enteropathy* de vrije fractie \(f_u\), waardoor totale \(C(t)\) en \(\text{AUC}_\tau\) dalen terwijl de farmacologisch actieve vrije concentratie \(C_u(t) = f_u C(t)\) en \(\text{AUC}_{u,24\text{h}}\) ongewijzigd blijven.
    - Gemiddelde relatieve biologische beschikbaarheid \(F_{1,\text{rel}}\) schaalt de toegediende orale/enterale dosis voor sonde- of suspensieverlies.
 3. **Semi-mechanistische duale PK–PD relaties:**
