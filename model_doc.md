@@ -178,36 +178,47 @@ $$\Phi_{32}(t) = \frac{k_{12}(E_\beta - E_\alpha)}{\alpha - \beta}, \qquad \Phi_
 
 ---
 
-## 6. Zelfstandig R-referentieblok voor directe reproductie
+## 6. Zelfstandige R- én NONMEM-referentiecode voor directe reproductie (copy-paste)
 
-Onderstaande minimalistische R-functie bevat exact alle formules uit §2–§5 zonder externe
-pakketafhankelijkheden en reproduceert voor elk individu exact dezelfde PK-parameters en
-concentratie-tijdcurve als `dapapksim`:
+Hieronder staan zowel de zelfstandige **R-implementatie** als de volledige **NONMEM 7.x control stream (`dapa_ped_hf_sim.ctl`)** en de **1-kind voorbeelddataset (`example_child_hf.csv`)** direct onder elkaar als kopieerbare tekstblokken (elk blok heeft rechtsboven een **Kopieer code**-knop).
+
+### 6.1 Zelfstandig R-referentieblok
+
+Onderstaande R-functie bevat alle formules uit §2–§7 zonder externe pakketafhankelijkheden en reproduceert exact dezelfde individuele PK/PD-parameters als `dapapksim` én NONMEM:
 
 ```r
 dapapksim_reproduce_one <- function(age, bwt, height_m, sex_male = 1, egfr = NULL, creat_umol = NULL,
-                                    dose_mg = 10, tau = 24, mat_option = "farhan2024") {
-  bmi <- bwt / (height_m^2)
-  bsa <- sqrt((height_m * 100 * bwt) / 3600)
-  ffm_ad <- if (sex_male == 1) 9270 * bwt / (6680 + 216 * bmi) else 9270 * bwt / (8780 + 244 * bmi)
+                                    dose_mg = 10, tau = 24, mat_option = "farhan2024",
+                                    edema_pct = 0, rf_factor = 1.0, cl_hep_factor = 1.0,
+                                    alb_gL = NULL, f1_rel = 1.0) {
+  bwt_dry <- bwt / (1 + max(0, edema_pct) / 100)
+  v_edema <- max(0, bwt - bwt_dry)
+  hm      <- if (height_m > 3) height_m / 100 else height_m
+  bmi     <- bwt_dry / max(hm^2, 0.09)
+  bsa     <- sqrt((hm * 100 * bwt_dry) / 3600)
+
+  ffm_ad <- if (sex_male == 1) 9270 * bwt_dry / (6680 + 216 * bmi) else 9270 * bwt_dry / (8780 + 244 * bmi)
   m_ffm  <- if (age >= 18) 1 else if (sex_male == 1) {
     if (age <= 0) 0.88 else 0.88 + 0.12 / (1 + (age / 13.4)^(-12.7))
   } else {
     if (age <= 0) 1.11 else 1.11 - 0.11 / (1 + (age / 7.1)^(-1.1))
   }
-  ffm <- min(ffm_ad * m_ffm, 0.97 * bwt)
-  f_size_cl <- ((ffm + 0.25 * (bwt - ffm)) / 63.08)^0.75
-  f_size_v2 <- (ffm + 0.20 * (bwt - ffm)) / 61.68
+  ffm       <- min(ffm_ad * m_ffm, 0.97 * bwt_dry)
+  f_size_cl <- ((ffm + 0.25 * (bwt_dry - ffm)) / 63.08)^0.75
+  f_size_v2 <- (ffm + 0.20 * (bwt_dry - ffm)) / 61.68
 
-  alb <- if (age >= 18) 44 else min(44, 1.1287 * log(max(1, age * 365.25)) + 33.746)
-  fu  <- 1 / (1 + (alb / 44) * ((1 - 0.086) / 0.086))
+  alb <- if (!is.null(alb_gL) && !is.na(alb_gL) && alb_gL > 0) alb_gL else {
+    if (age >= 18) 44 else min(44, 1.1287 * log(max(1, age * 365.25)) + 33.746)
+  }
+  fu       <- 1 / (1 + (alb / 44) * ((1 - 0.086) / 0.086))
   fu_ratio <- fu / 0.086
 
-  ga   <- if (age < 0.1 && bwt < 2.5) min(40, max(24, 22 + 7.2 * bwt)) else 40
-  pma  <- ga + 52.1775 * max(age, 0)
-  ngfr <- 115.0 * (pma^3.4 / (47.7^3.4 + pma^3.4)) * (0.9925^max(0, age - 35))
+  w_gfr <- max(bwt_dry, 0.4)
+  ga    <- if (age < 0.1 && w_gfr < 2.5) min(40, max(24, 22 + 7.2 * w_gfr)) else 40
+  pma   <- ga + 52.1775 * max(age, 0)
+  ngfr  <- 115.0 * (pma^3.4 / (47.7^3.4 + pma^3.4)) * (0.9925^max(0, age - 35))
   if (is.null(egfr)) {
-    if (!is.null(creat_umol) && age >= 1) {
+    if (!is.null(creat_umol) && !is.na(creat_umol) && creat_umol > 0 && age >= 1) {
       scr <- max(creat_umol / 88.4, 0.05)
       egfr <- if (age >= 18) {
         kap <- if (sex_male == 1) 0.9 else 0.7; alp <- if (sex_male == 1) -0.302 else -0.241
@@ -215,11 +226,12 @@ dapapksim_reproduce_one <- function(age, bwt, height_m, sex_male = 1, egfr = NUL
       } else {
         k <- if (sex_male == 1) (if (age < 12) 39.0 * 1.008^(age - 12) else 39.0 * 1.045^(age - 12))
              else               (if (age < 12) 36.1 * 1.008^(age - 12) else 36.1 * 1.023^(age - 12))
-        k * height_m / scr
+        k * hm / scr
       }
       egfr <- min(max(egfr, 5), 180)
     } else egfr <- min(max(ngfr, 5), 180)
   }
+  if (abs(rf_factor - 1.0) > 1e-12) egfr <- min(max(egfr * rf_factor, 5), 180)
   rf <- min(max(egfr / max(ngfr, 1.0), 0), 1.75)
 
   mat <- switch(mat_option,
@@ -229,14 +241,387 @@ dapapksim_reproduce_one <- function(age, bwt, height_m, sex_male = 1, egfr = NUL
     simcyp_s1  = if (age <= 15) 0.086 + (1.041 - 0.086) * age^1.2 / (1.16^1.2 + age^1.2) else 1.0
   )
 
-  CL <- fu_ratio * (5.44 * mat * f_size_cl + 15.78 * mat * f_size_cl * rf + 0.011 * egfr * (bsa / 2.0))
-  V2 <- 73.47 * f_size_v2
-  V3 <- 168.5 * (bwt / 84.0) * fu_ratio
+  CL <- fu_ratio * (5.44 * mat * f_size_cl * cl_hep_factor +
+                    15.78 * mat * f_size_cl * rf +
+                    0.011 * egfr * (bsa / 2.0))
+  V2 <- 73.47 * f_size_v2 + v_edema
+  V3 <- 168.5 * (bwt_dry / 84.0) * fu_ratio
   Q  <- 9.137 * f_size_cl
   KA <- 2.833 * (0.45 + 0.55 * age / (0.10 + age))
-  list(CL = CL, V2 = V2, V3 = V3, Q = Q, KA = KA, FU = fu, AUC_ss = (dose_mg * 1000) / CL,
-       AUCu_ss = fu * (dose_mg * 1000) / CL)
+  aucu_24h <- fu * ((dose_mg * 1000 * f1_rel) / CL) * (24 / tau)
+  list(WDRY = bwt_dry, FFM = ffm, FU = fu, NGFR = ngfr, EGFR = egfr, RF = rf, MAT = mat,
+       CL = CL, V2 = V2, V3 = V3, Q = Q, KA = KA,
+       AUC_ss = (dose_mg * 1000 * f1_rel) / CL, AUCu_24h = aucu_24h)
 }
+
+# Voorbeeld — reproduceert exact hetzelfde hartfalen-voorbeeldkind (ID = 1) als in NONMEM hieronder:
+dapapksim_reproduce_one(age = 0.75, bwt = 8.40, height_m = 0.71, sex_male = 1,
+                        edema_pct = 5, rf_factor = 0.80, cl_hep_factor = 0.90,
+                        alb_gL = 32, dose_mg = 1.20, tau = 24, mat_option = "farhan2024")
+```
+
+---
+
+### 6.2 NONMEM 7.x control stream (`dapa_ped_hf_sim.ctl`)
+
+Sla onderstaand blok op als `dapa_ped_hf_sim.ctl` in dezelfde map als `example_child_hf.csv` (§6.3) en voer uit met `nmfe75 dapa_ped_hf_sim.ctl dapa_ped_hf_sim.lst` (of via PsN: `execute dapa_ped_hf_sim.ctl`):
+
+```fortran
+$SIZES PD=50
+$PROBLEM Dapagliflozine 6-pijler fysiologisch popPK/PD model + pediatrisch hartfalen (dapapksim)
+; =============================================================================
+; Volledige NONMEM-implementatie van het dapapksim-model (R/pk_model.R & R/hf_pkpd.R)
+; Basis: Penland et al. J Clin Pharmacol 2023;63:551-559 (doi:10.1002/jcph.2196),
+; uitgebreid met:
+;   1. FFM/NFM allometrie op euvolemisch drooggewicht (Al-Sallami 2015; Janmahasatian 2005)
+;   2. Plasma-albumine ontogenie & vrije fractie fu (McNamara & Alcorn 2002; fu_volw = 0.086)
+;   3. Nierfunctie: Rhodin 2009 PMA-nGFR (<1 j / geen CREAT), Pierce 2021 CKiD U25 (1-<18 j),
+;      en CKD-EPI 2021 (>=18 j), begrensd op [5, 180] mL/min/1.73m2
+;   4. Drie-paden klaring: hepatisch UGT1A9 + renaal tubulair UGT1A9 + passieve filtratie
+;   5. UGT1A9-ontogenie keuze via MATOPT: 1 = Farhan 2024 (standaard), 2 = Badee 2019, 3 = Simcyp s1
+;   6. Ontwikkelings-GI-absorptie op KA + hartfalen-pathofysiologie (RFFAC, HEPFAC, EDEMA, ALBIN, F1REL)
+;   7. Semi-mechanistische duale PD in $ERROR: Cu(t), luminale SGLT2-bezetting (%) en TGF/HCT Emax (%)
+;
+; Eenheden:
+;   TIME, TAD, II : uur (h)
+;   AMT, DOSEMG   : milligram (mg) -> via S2 = V2/1000 geeft F = A(2)/S2 exact ng/mL (= ug/L)
+;   AGE           : jaar
+;   BWT           : actueel lichaamsgewicht (kg; bij EDEMA > 0 geldt WDRY = BWT / (1 + EDEMA/100))
+;   HT            : lengte in meter (m; waarden > 3 worden automatisch als cm -> m omgerekend)
+;   SEX           : 1 = man/jongen, 0 = vrouw/meisje
+;   CREAT         : serumcreatinine in umol/L (zet op -99 indien niet beschikbaar)
+;   EGFRIN        : directe eGFR in mL/min/1.73m2 (zet op -99 om uit Rhodin/CREAT te berekenen)
+;   ALBIN         : serumalbumine in g/L (zet op -99 voor fysiologische McNamara leeftijdsformule)
+;   EDEMA         : percentage overvulling boven drooggewicht (%; 0 = euvolemisch)
+;   RFFAC         : cardiorenaal GFR-behoud (fractie; 1.0 = normaal, bv. 0.80 bij stabiel HF)
+;   HEPFAC        : hepatische UGT1A9-functie bij veneuze stuwing (fractie; 1.0 = normaal)
+;   F1REL         : relatieve enterale biologische beschikbaarheid (fractie; 1.0 = 100%)
+;   MATOPT        : UGT1A9-ontogenie (1 = Farhan 2024, 2 = Badee 2019, 3 = Simcyp s1)
+;   TAU           : doseringsinterval in uur (bv. 24) voor berekening van AUCU24
+; =============================================================================
+
+$INPUT ID TIME TAD DAY EVID AMT ADDL II CMT DV MDV AGE BWT HT SEX CREAT EGFRIN ALBIN EDEMA RFFAC HEPFAC F1REL MATOPT DOSEMG TAU
+
+$DATA example_child_hf.csv IGNORE=@
+
+$SUBROUTINES ADVAN4 TRANS4
+
+$PK
+  ; --- 0. Euvolemisch drooggewicht, lengte, BMI en Mosteller-BSA ---
+  EDPCT = EDEMA
+  IF (EDPCT.LT.0.0) EDPCT = 0.0
+  WDRY  = BWT / (1.0 + EDPCT / 100.0)
+  VEDEM = BWT - WDRY
+  IF (VEDEM.LT.0.0) VEDEM = 0.0
+
+  IF (HT.GT.3.0) THEN
+    HM = HT / 100.0
+  ELSE
+    HM = HT
+  ENDIF
+  H2 = HM * HM
+  IF (H2.LT.0.09) H2 = 0.09
+  BMI = WDRY / H2
+  BSA = SQRT((HM * 100.0 * WDRY) / 3600.0)
+
+  ; --- 1. Lichaamssamenstelling: FFM (Al-Sallami 2015 / Janmahasatian 2005) & NFM ---
+  IF (SEX.EQ.1) THEN
+    FFMAD = 9270.0 * WDRY / (6680.0 + 216.0 * BMI)
+  ELSE
+    FFMAD = 9270.0 * WDRY / (8780.0 + 244.0 * BMI)
+  ENDIF
+
+  IF (AGE.GE.18.0) THEN
+    MFFM = 1.0
+  ELSE
+    IF (SEX.EQ.1) THEN
+      IF (AGE.LE.0.0) THEN
+        MFFM = 0.88
+      ELSE
+        MFFM = 0.88 + 0.12 / (1.0 + (AGE / 13.4)**(-12.7))
+      ENDIF
+    ELSE
+      IF (AGE.LE.0.0) THEN
+        MFFM = 1.11
+      ELSE
+        MFFM = 1.11 - 0.11 / (1.0 + (AGE / 7.1)**(-1.1))
+      ENDIF
+    ENDIF
+  ENDIF
+
+  FFM = FFMAD * MFFM
+  IF (FFM.GT.0.97*WDRY) FFM = 0.97 * WDRY
+
+  NFMCL = FFM + 0.25 * (WDRY - FFM)
+  NFMV2 = FFM + 0.20 * (WDRY - FFM)
+  FSZCL = (NFMCL / 63.08)**0.75
+  FSZV2 = NFMV2 / 61.68
+
+  ; --- 2. Plasma-albumine ontogenie (McNamara & Alcorn 2002) & eiwitbinding fu ---
+  FUAD   = 0.086
+  ALBAD  = 44.0
+  KABIND = (1.0 - FUAD) / FUAD
+  DAYS   = AGE * 365.25
+  IF (DAYS.LT.1.0) DAYS = 1.0
+
+  IF (AGE.GE.18.0) THEN
+    ALBMOD = ALBAD
+  ELSE
+    ALBMOD = 1.1287 * LOG(DAYS) + 33.746
+    IF (ALBMOD.GT.ALBAD) ALBMOD = ALBAD
+  ENDIF
+
+  IF (ALBIN.GT.0.0) THEN
+    ALBU = ALBIN
+  ELSE
+    ALBU = ALBMOD
+  ENDIF
+
+  FU    = 1.0 / (1.0 + (ALBU / ALBAD) * KABIND)
+  FURAT = FU / FUAD
+
+  ; --- 3. Verwachte gezonde GFR (Rhodin 2009) & individuele eGFR ---
+  WGFR = WDRY
+  IF (WGFR.LT.0.4) WGFR = 0.4
+  GA = 40.0
+  IF (AGE.LT.0.1.AND.WGFR.LT.2.5) THEN
+    GA = 22.0 + 7.2 * WGFR
+    IF (GA.LT.24.0) GA = 24.0
+    IF (GA.GT.40.0) GA = 40.0
+  ENDIF
+  PMA   = GA + 52.1775 * AGE
+  AGE35 = AGE - 35.0
+  IF (AGE35.LT.0.0) AGE35 = 0.0
+  NGFR  = 115.0 * ((PMA**3.4) / (47.7**3.4 + PMA**3.4)) * (0.9925**AGE35)
+
+  IF (EGFRIN.GT.0.0) THEN
+    EGFR0 = EGFRIN
+  ELSE
+    IF (CREAT.GT.0.0.AND.AGE.GE.18.0) THEN
+      ; Volwassen CKD-EPI 2021 (race-free)
+      SCR = CREAT / 88.4
+      IF (SCR.LT.0.05) SCR = 0.05
+      IF (SEX.EQ.1) THEN
+        KAP  = 0.9
+        ALP  = -0.302
+        SFAC = 1.0
+      ELSE
+        KAP  = 0.7
+        ALP  = -0.241
+        SFAC = 1.012
+      ENDIF
+      CRK   = SCR / KAP
+      MINCR = CRK
+      IF (MINCR.GT.1.0) MINCR = 1.0
+      MAXCR = CRK
+      IF (MAXCR.LT.1.0) MAXCR = 1.0
+      EGFR0 = 142.0 * (MINCR**ALP) * (MAXCR**(-1.200)) * (0.9938**AGE) * SFAC
+      IF (EGFR0.LT.5.0) EGFR0 = 5.0
+      IF (EGFR0.GT.180.0) EGFR0 = 180.0
+    ELSE
+      IF (CREAT.GT.0.0.AND.AGE.GE.1.0) THEN
+        ; Pediatrische Pierce 2021 CKiD U25 (1 - <18 jaar)
+        SCR = CREAT / 88.4
+        IF (SCR.LT.0.05) SCR = 0.05
+        IF (SEX.EQ.1) THEN
+          IF (AGE.LT.12.0) THEN
+            KCKID = 39.0 * (1.008**(AGE - 12.0))
+          ELSE
+            KCKID = 39.0 * (1.045**(AGE - 12.0))
+          ENDIF
+        ELSE
+          IF (AGE.LT.12.0) THEN
+            KCKID = 36.1 * (1.008**(AGE - 12.0))
+          ELSE
+            KCKID = 36.1 * (1.023**(AGE - 12.0))
+          ENDIF
+        ENDIF
+        EGFR0 = KCKID * HM / SCR
+        IF (EGFR0.LT.5.0) EGFR0 = 5.0
+        IF (EGFR0.GT.180.0) EGFR0 = 180.0
+      ELSE
+        ; Zuigelingen (<1 jaar) of ontbrekend creatinine: Rhodin PMA-maturatie
+        EGFR0 = NGFR
+        IF (EGFR0.LT.5.0) EGFR0 = 5.0
+        IF (EGFR0.GT.180.0) EGFR0 = 180.0
+      ENDIF
+    ENDIF
+  ENDIF
+
+  ; Cardiorenaal GFR-behoud (RFFAC)
+  EGFR = EGFR0
+  IF (RFFAC.LT.0.999999.OR.RFFAC.GT.1.000001) THEN
+    EGFR = EGFR0 * RFFAC
+    IF (EGFR.LT.5.0) EGFR = 5.0
+    IF (EGFR.GT.180.0) EGFR = 180.0
+  ENDIF
+
+  NGFRD = NGFR
+  IF (NGFRD.LT.1.0) NGFRD = 1.0
+  RF = EGFR / NGFRD
+  IF (RF.LT.0.0) RF = 0.0
+  IF (RF.GT.1.75) RF = 1.75
+
+  ; --- 4 & 5. UGT1A9-ontogenie (MAT) & drie-paden klaringsdecompositie ---
+  TM50   = THETA(11)
+  HILL   = THETA(12)
+  FBIRTH = THETA(13)
+
+  IF (MATOPT.EQ.2) THEN
+    ; Badee et al. 2019 / Jo et al. 2021 scenario 2
+    IF (AGE.LE.0.0) THEN
+      MAT = 0.0
+    ELSE
+      IF (AGE.LE.1.0) THEN
+        MAT = 1.305 * (AGE**1.1) / (0.086**1.1 + AGE**1.1)
+      ELSE
+        IF (AGE.LE.20.0) THEN
+          MAT = 1.243 - 0.833 * EXP(0.2 * (AGE - 25.0))
+          IF (MAT.LT.1.0) MAT = 1.0
+        ELSE
+          MAT = 1.0
+        ENDIF
+      ENDIF
+    ENDIF
+  ELSE
+    IF (MATOPT.EQ.3) THEN
+      ; Simcyp s1 / Jo et al. 2021 scenario 1
+      IF (AGE.LE.15.0) THEN
+        MAT = 0.086 + (1.041 - 0.086) * (AGE**1.2) / (1.16**1.2 + AGE**1.2)
+      ELSE
+        MAT = 1.0
+      ENDIF
+    ELSE
+      ; Standaard (MATOPT = 1): Farhan et al. 2024 in-vivo UGT1A9
+      IF (AGE.LE.0.0) THEN
+        MAT = FBIRTH
+      ELSE
+        MAT = FBIRTH + (1.0 - FBIRTH) * (AGE**HILL) / (TM50**HILL + AGE**HILL)
+      ENDIF
+    ENDIF
+  ENDIF
+
+  CLHEP  = FURAT * THETA(2) * MAT * FSZCL * HEPFAC
+  CLRUGT = FURAT * THETA(3) * MAT * FSZCL * RF
+  CLFILT = FURAT * THETA(4) * EGFR * (BSA / 2.0)
+  TVCL   = CLHEP + CLRUGT + CLFILT
+
+  ; --- 6. Volumes (incl. extracellulair oedeem in V2), Q en GI-absorptierijping ---
+  TVV2 = THETA(5) * FSZV2 + VEDEM
+  TVV3 = THETA(6) * (WDRY / 84.0) * FURAT
+  TVQ  = THETA(7) * FSZCL
+  FGI  = THETA(9) + (1.0 - THETA(9)) * (AGE / (THETA(10) + AGE))
+  TVKA = THETA(1) * FGI
+
+  ; --- Individuele PK-parameters (ADVAN4 TRANS4) ---
+  CL    = TVCL * EXP(ETA(2))
+  V2    = TVV2
+  V3    = TVV3 * EXP(ETA(3))
+  Q     = TVQ
+  KARAW = TVKA * EXP(ETA(1))
+  IF (KARAW.LT.0.02) THEN
+    KA = 0.02
+  ELSE
+    IF (KARAW.GT.50.0) THEN
+      KA = 50.0
+    ELSE
+      KA = KARAW
+    ENDIF
+  ENDIF
+
+  ALAG1 = THETA(8)
+  F1    = F1REL
+  S2    = V2 / 1000.0 ; AMT in mg, V2 in L => F = A(2)/S2 in ng/mL (ug/L)
+
+  ; Analytische steady-state 24-uurs vrije blootstelling & systemische Emax-markers
+  AUCINF = (DOSEMG * 1000.0 * F1REL) / CL
+  AUCU24 = FU * AUCINF * (24.0 / TAU)
+  ETGF   = 100.0 * AUCU24 / (5.2 + AUCU24)
+  EHCT   = 100.0 * AUCU24 / (20.7 + AUCU24)
+
+$ERROR
+  CTOT  = F
+  CU    = FU * CTOT
+  SGLT2 = 100.0 * CU / (0.20 + CU)
+  Y     = CTOT + EPS(1)
+
+$THETA
+  2.833 FIX  ; 1  KA_adult (1/h) - Penland 2023 THETA(1)
+  5.44  FIX  ; 2  CL_hep_UGT1A9 (L/h) bij ref-NFM, MAT=1, fu=0.086
+  15.78 FIX  ; 3  CL_ren_UGT1A9 (L/h) bij ref-NFM, MAT=1, RF=1, fu=0.086
+  0.011 FIX  ; 4  CL_filt_slope (L/h per mL/min/1.73m2 bij BSA=2.0 m2)
+  73.47 FIX  ; 5  V2_ref (L bij NFM_V2 = 61.68 kg) - Penland 2023 THETA(3)
+  168.5 FIX  ; 6  V3_ref (L bij BWT = 84 kg, fu = 0.086) - Penland 2023 THETA(4)
+  9.137 FIX  ; 7  Q_ref (L/h bij NFM_CL = 63.08 kg) - Penland 2023 THETA(5)
+  0.5   FIX  ; 8  ALAG1 absorptielagtijd (h)
+  0.45  FIX  ; 9  GI_F0 relatieve neonatale maagledigingssnelheid bij geboorte
+  0.10  FIX  ; 10 GI_T50 rijpingshalfwaardetijd maaglediging (jaar)
+  0.09  FIX  ; 11 TM50 UGT1A9 maturatie (jaar) - Farhan et al. 2024
+  1.9   FIX  ; 12 HILL UGT1A9 maturatie - Farhan et al. 2024
+  0.05  FIX  ; 13 FBIRTH UGT1A9 fractie bij geboorte - Farhan et al. 2024
+
+; Standaard op 0 FIX voor exacte 1-op-1 deterministische reproductie van het voorbeeldkind.
+; Voor populatie Monte Carlo simulatie met inter-individuele variabiliteit (IIV):
+; vervang onderstaande drie regels door:
+;   0.36   FIX  ; ETA(1) BSV op KA (gekalibreerd klinisch; of 8.52 FIX uit Penland 2023)
+;   0.1136 FIX  ; ETA(2) BSV op CL/F
+;   0.8229 FIX  ; ETA(3) BSV op V3/F
+$OMEGA
+  0 FIX  ; ETA(1) BSV KA (deterministische modus: ETA = 0)
+  0 FIX  ; ETA(2) BSV CL
+  0 FIX  ; ETA(3) BSV V3
+
+$SIGMA
+  0 FIX  ; Geen residuele fout (zuivere PK/PD-voorspelling)
+
+$SIMULATION (20261125) ONLYSIM SUBPROBLEMS=1
+
+$TABLE ID TIME TAD DAY EVID AMT WDRY FFM ALBU FU NGFR EGFR RF MAT
+       CL CLHEP CLRUGT CLFILT V2 V3 Q KA CTOT CU SGLT2 AUCU24 ETGF EHCT
+       NOAPPEND NOPRINT ONEHEADER FORMAT=s1PE14.6 FILE=sdtab_dapa_ped_hf.tab
+```
+
+---
+
+### 6.3 Voorbeelddataset met 1 kind voor NONMEM (`example_child_hf.csv`)
+
+Sla onderstaande CSV op als `example_child_hf.csv` naast `dapa_ped_hf_sim.ctl` (zuigeling van `9 maanden`, actueel gewicht `8,40 kg` met `5%` overvulling → drooggewicht `8,00 kg`, `RFFAC = 0,80`, `HEPFAC = 0,90`, `ALBIN = 32 g/L`, `1,20 mg` 1×/24u gedurende 7 dagen). Verwachte NONMEM-uitvoer op `ID = 1`: `CL = 4.564798 L/h`, `V2 = 8.458278 L`, `V3 = 21.37610 L`, `Q = 1.726980 L/h`, `KA = 2.649688 h⁻¹`, `FU = 0.114556`, `AUCU24 = 30.11452 ng·h/mL`, `CTOT(t=1h, Dag 1) = 83.623496 ng/mL`, `CTOT(t=145h, Dag 7) = 85.259729 ng/mL`:
+
+```csv
+ID,TIME,TAD,DAY,EVID,AMT,ADDL,II,CMT,DV,MDV,AGE,BWT,HT,SEX,CREAT,EGFRIN,ALBIN,EDEMA,RFFAC,HEPFAC,F1REL,MATOPT,DOSEMG,TAU
+1,0,0,1,1,1.2,6,24,1,0,1,0.75,8.4,0.71,1,-99,-99,32,5,0.8,0.9,1,1,1.2,24
+1,0,0,1,0,0,0,0,2,0,1,0.75,8.4,0.71,1,-99,-99,32,5,0.8,0.9,1,1,1.2,24
+1,0.25,0.25,1,0,0,0,0,2,0,1,0.75,8.4,0.71,1,-99,-99,32,5,0.8,0.9,1,1,1.2,24
+1,0.5,0.5,1,0,0,0,0,2,0,1,0.75,8.4,0.71,1,-99,-99,32,5,0.8,0.9,1,1,1.2,24
+1,0.6,0.6,1,0,0,0,0,2,0,1,0.75,8.4,0.71,1,-99,-99,32,5,0.8,0.9,1,1,1.2,24
+1,0.75,0.75,1,0,0,0,0,2,0,1,0.75,8.4,0.71,1,-99,-99,32,5,0.8,0.9,1,1,1.2,24
+1,1,1,1,0,0,0,0,2,0,1,0.75,8.4,0.71,1,-99,-99,32,5,0.8,0.9,1,1,1.2,24
+1,1.5,1.5,1,0,0,0,0,2,0,1,0.75,8.4,0.71,1,-99,-99,32,5,0.8,0.9,1,1,1.2,24
+1,2,2,1,0,0,0,0,2,0,1,0.75,8.4,0.71,1,-99,-99,32,5,0.8,0.9,1,1,1.2,24
+1,3,3,1,0,0,0,0,2,0,1,0.75,8.4,0.71,1,-99,-99,32,5,0.8,0.9,1,1,1.2,24
+1,4,4,1,0,0,0,0,2,0,1,0.75,8.4,0.71,1,-99,-99,32,5,0.8,0.9,1,1,1.2,24
+1,6,6,1,0,0,0,0,2,0,1,0.75,8.4,0.71,1,-99,-99,32,5,0.8,0.9,1,1,1.2,24
+1,8,8,1,0,0,0,0,2,0,1,0.75,8.4,0.71,1,-99,-99,32,5,0.8,0.9,1,1,1.2,24
+1,12,12,1,0,0,0,0,2,0,1,0.75,8.4,0.71,1,-99,-99,32,5,0.8,0.9,1,1,1.2,24
+1,16,16,1,0,0,0,0,2,0,1,0.75,8.4,0.71,1,-99,-99,32,5,0.8,0.9,1,1,1.2,24
+1,20,20,1,0,0,0,0,2,0,1,0.75,8.4,0.71,1,-99,-99,32,5,0.8,0.9,1,1,1.2,24
+1,24,24,1,0,0,0,0,2,0,1,0.75,8.4,0.71,1,-99,-99,32,5,0.8,0.9,1,1,1.2,24
+1,144,0,7,0,0,0,0,2,0,1,0.75,8.4,0.71,1,-99,-99,32,5,0.8,0.9,1,1,1.2,24
+1,144.25,0.25,7,0,0,0,0,2,0,1,0.75,8.4,0.71,1,-99,-99,32,5,0.8,0.9,1,1,1.2,24
+1,144.5,0.5,7,0,0,0,0,2,0,1,0.75,8.4,0.71,1,-99,-99,32,5,0.8,0.9,1,1,1.2,24
+1,144.6,0.6,7,0,0,0,0,2,0,1,0.75,8.4,0.71,1,-99,-99,32,5,0.8,0.9,1,1,1.2,24
+1,144.75,0.75,7,0,0,0,0,2,0,1,0.75,8.4,0.71,1,-99,-99,32,5,0.8,0.9,1,1,1.2,24
+1,145,1,7,0,0,0,0,2,0,1,0.75,8.4,0.71,1,-99,-99,32,5,0.8,0.9,1,1,1.2,24
+1,145.5,1.5,7,0,0,0,0,2,0,1,0.75,8.4,0.71,1,-99,-99,32,5,0.8,0.9,1,1,1.2,24
+1,146,2,7,0,0,0,0,2,0,1,0.75,8.4,0.71,1,-99,-99,32,5,0.8,0.9,1,1,1.2,24
+1,147,3,7,0,0,0,0,2,0,1,0.75,8.4,0.71,1,-99,-99,32,5,0.8,0.9,1,1,1.2,24
+1,148,4,7,0,0,0,0,2,0,1,0.75,8.4,0.71,1,-99,-99,32,5,0.8,0.9,1,1,1.2,24
+1,150,6,7,0,0,0,0,2,0,1,0.75,8.4,0.71,1,-99,-99,32,5,0.8,0.9,1,1,1.2,24
+1,152,8,7,0,0,0,0,2,0,1,0.75,8.4,0.71,1,-99,-99,32,5,0.8,0.9,1,1,1.2,24
+1,156,12,7,0,0,0,0,2,0,1,0.75,8.4,0.71,1,-99,-99,32,5,0.8,0.9,1,1,1.2,24
+1,160,16,7,0,0,0,0,2,0,1,0.75,8.4,0.71,1,-99,-99,32,5,0.8,0.9,1,1,1.2,24
+1,164,20,7,0,0,0,0,2,0,1,0.75,8.4,0.71,1,-99,-99,32,5,0.8,0.9,1,1,1.2,24
+1,168,24,7,0,0,0,0,2,0,1,0.75,8.4,0.71,1,-99,-99,32,5,0.8,0.9,1,1,1.2,24
 ```
 
 ---

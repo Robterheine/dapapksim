@@ -97,11 +97,53 @@ ui <- fluidPage(
   tags$head(
     tags$link(rel = "stylesheet", type = "text/css", href = "style.css"),
     tags$script(HTML("
+      function initCopyButtons() {
+        $('.md-doc pre').each(function() {
+          var $pre = $(this);
+          if ($pre.parent().hasClass('pre-copy-wrap')) return;
+          $pre.wrap('<div class=\"pre-copy-wrap\"></div>');
+          var $btn = $('<button type=\"button\" class=\"btn btn-default btn-xs copy-code-btn\">Kopieer code</button>');
+          $btn.on('click', function() {
+            var codeEl = $pre.find('code')[0] || $pre[0];
+            var txt = codeEl.innerText || codeEl.textContent || '';
+            var done = function() {
+              $btn.text('Gekopieerd ✓').addClass('copied');
+              setTimeout(function() { $btn.text('Kopieer code').removeClass('copied'); }, 1800);
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(txt).then(done).catch(function() {
+                var ta = document.createElement('textarea');
+                ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+                document.body.appendChild(ta); ta.select();
+                try { document.execCommand('copy'); done(); } catch(e) {}
+                document.body.removeChild(ta);
+              });
+            } else {
+              var ta = document.createElement('textarea');
+              ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+              document.body.appendChild(ta); ta.select();
+              try { document.execCommand('copy'); done(); } catch(e) {}
+              document.body.removeChild(ta);
+            }
+          });
+          $pre.parent().append($btn);
+        });
+      }
+      $(document).ready(function() { initCopyButtons(); });
       $(document).on('shown.bs.tab', 'a[data-toggle=\"tab\"], a[data-toggle=\"pill\"]', function() {
+        initCopyButtons();
         if (window.MathJax && MathJax.Hub) {
           MathJax.Hub.Queue(['Typeset', MathJax.Hub]);
         }
       });
+      function scrollToCodeSection() {
+        var $target = $('#model_doc_container h2').filter(function() {
+          return $(this).text().indexOf('6.') === 0;
+        }).first();
+        if ($target.length) {
+          $('html, body').animate({ scrollTop: $target.offset().top - 20 }, 250);
+        }
+      }
     "))
   ),
   titlePanel("Dapagliflozine PK/PD & fysiologische dosisextrapolatie — incl. pediatrisch hartfalen"),
@@ -349,7 +391,20 @@ ui <- fluidPage(
                 ),
                 tabPanel(
                   "2. Volledige Wiskundige Formules & Reproductie (R / NONMEM)",
-                  div(class = "md-doc", include_math_md("model_doc.md"))
+                  wellPanel(
+                    strong("Direct naar R- & NONMEM-reproductiecode (§6): "),
+                    tags$button(
+                      type = "button",
+                      class = "btn btn-primary btn-sm",
+                      onclick = "scrollToCodeSection()",
+                      "Spring naar §6: R- & NONMEM-code (copy-paste)"
+                    ),
+                    " ",
+                    downloadButton("dl_nm_ctl", "Download NONMEM control stream (.ctl)", class = "btn-sm"),
+                    " ",
+                    downloadButton("dl_nm_csv", "Download 1-kind voorbeelddataset (.csv)", class = "btn-sm")
+                  ),
+                  div(id = "model_doc_container", class = "md-doc", include_math_md("model_doc.md"))
                 )
               )
             )
@@ -1288,6 +1343,20 @@ server <- function(input, output, session) {
     content = function(file) {
       s <- sim_res(); req(s)
       utils::write.csv(s$res$metrics, file, row.names = FALSE)
+    }
+  )
+
+  output$dl_nm_ctl <- downloadHandler(
+    filename = "dapa_ped_hf_sim.ctl",
+    content = function(file) {
+      file.copy("nonmem/dapa_ped_hf_sim.ctl", file, overwrite = TRUE)
+    }
+  )
+
+  output$dl_nm_csv <- downloadHandler(
+    filename = "example_child_hf.csv",
+    content = function(file) {
+      file.copy("nonmem/example_child_hf.csv", file, overwrite = TRUE)
     }
   )
 }
