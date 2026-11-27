@@ -141,27 +141,27 @@ body {
   margin-bottom: 4px;
 }
 
-/* Genummerde sub-navigatie binnen het Hartfalen PK/PD tabblad */
+/* Genummerde sub-navigatie binnen Hartfalen PK/PD en Model & assumpties */
 .hf-subtabs {
   margin-top: 12px;
 }
-.hf-subtabs > .nav-pills {
+.hf-subtabs .nav-pills {
   background-color: #eef4fa;
-  border: 1px solid #d5e1ee;
+  border: 1px solid #cdddf0;
   border-radius: 6px;
   padding: 5px;
   margin-bottom: 16px;
 }
-.hf-subtabs > .nav-pills > li > a {
+.hf-subtabs .nav-pills > li > a {
   color: #08306b;
   font-weight: 600;
   font-size: 13.5px;
   border-radius: 4px;
   padding: 8px 14px;
 }
-.hf-subtabs > .nav-pills > li.active > a,
-.hf-subtabs > .nav-pills > li.active > a:hover,
-.hf-subtabs > .nav-pills > li.active > a:focus {
+.hf-subtabs .nav-pills > li.active > a,
+.hf-subtabs .nav-pills > li.active > a:hover,
+.hf-subtabs .nav-pills > li.active > a:focus {
   background-color: #08306b;
   color: #ffffff;
 }
