@@ -41,11 +41,13 @@ copulapop_dataset_info <- function(dataset) {
 #      trekkingen in het volwassen stratum 18-100 j plaatst en daarna wegfiltert).
 #   2. Adaptieve twee-staps oversampling met accumulatie over onafhankelijke seeds, zodat ook
 #      zeer smalle neonatale/infantiele leeftijdsvensters (bv. 0-0.1 jaar) snel N halen.
-generate_virtual_population <- function(dataset, n, age_range, sex = "both", seed = 1) {
+generate_virtual_population <- function(dataset, n, age_range, sex = "both", seed = 1, lang = "en") {
+  is_nl <- identical(lang, "nl")
   ensure_copulapop()
   n <- max(1L, as.integer(round(as.numeric(n))))
   if (length(age_range) != 2 || any(is.na(age_range))) {
-    stop("Ongeldige leeftijdsrange: geef een minimum- en maximumleeftijd op.")
+    stop(if (is_nl) "Ongeldige leeftijdsrange: geef een minimum- en maximumleeftijd op."
+         else "Invalid age range: please provide a minimum and maximum age.")
   }
   lo <- min(as.numeric(age_range))
   hi <- max(as.numeric(age_range))
@@ -56,7 +58,11 @@ generate_virtual_population <- function(dataset, n, age_range, sex = "both", see
     ds_hi <- as.numeric(info$age_range[2])
     if (hi < ds_lo || lo > ds_hi) {
       stop(sprintf(
-        "Dataset %s bevat alleen leeftijden van %g tot %g jaar (gevraagd: %g-%g jaar). Kies een passende dataset of leeftijdsrange.",
+        if (is_nl) {
+          "Dataset %s bevat alleen leeftijden van %g tot %g jaar (gevraagd: %g-%g jaar). Kies een passende dataset of leeftijdsrange."
+        } else {
+          "Dataset %s only contains ages from %g to %g years (requested: %g-%g years). Please choose a compatible dataset or age range."
+        },
         dataset, ds_lo, ds_hi, lo, hi
       ))
     }
@@ -128,9 +134,11 @@ generate_virtual_population <- function(dataset, n, age_range, sex = "both", see
 
   if (is.null(acc) || nrow(acc) == 0) {
     if (!is.null(first_err)) {
-      stop("copulapop::generate_population faalde: ", conditionMessage(first_err))
+      stop(if (is_nl) "copulapop::generate_population faalde: " else "copulapop::generate_population failed: ",
+           conditionMessage(first_err))
     }
-    stop("copulapop kon geen populatie genereren voor deze instellingen.")
+    stop(if (is_nl) "copulapop kon geen populatie genereren voor deze instellingen."
+         else "copulapop could not generate a population for these settings.")
   }
 
   if (nrow(acc) >= n) {
@@ -142,7 +150,11 @@ generate_virtual_population <- function(dataset, n, age_range, sex = "both", see
   }
 
   warning(sprintf(
-    "Slechts %d van %d gevraagde individuen gegenereerd in de leeftijdsrange %g-%g jaar.",
+    if (is_nl) {
+      "Slechts %d van %d gevraagde individuen gegenereerd in de leeftijdsrange %g-%g jaar."
+    } else {
+      "Only %d of %d requested individuals generated in the age range %g-%g years."
+    },
     nrow(acc), n, lo, hi
   ))
   acc$ID <- seq_len(nrow(acc))

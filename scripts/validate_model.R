@@ -517,6 +517,23 @@ p_fig_val <- (p_val_a + p_val_b) +
   )
 save_svg_clean(p_fig_val, "figures/fig_validation.svg", "figval", width = 9.8, height = 4.9)
 
+p_val_b_en <- p_val_b + labs(
+  title = "B. Virtual RUMC population 10-17 y (0.15 mg/kg)",
+  x = "Time after dose (h)",
+  y = "Dapagliflozin concentration (ng/mL)"
+)
+p_val_a_en <- p_fig1 + labs(
+  title = "A. AUC (10 mg) vs eGFR (Penland 2023)",
+  subtitle = NULL, caption = NULL,
+  x = "eGFR (mL/min/1.73 m2)", y = "AUCtau,ss at 10 mg (ng*h/mL)"
+)
+p_fig_val_en <- (p_val_a_en + p_val_b_en) +
+  plot_annotation(
+    title = "Validation dapapksim: physiological 3-pathway model vs Penland 2023 & paediatric curve",
+    theme = base_theme
+  )
+save_svg_clean(p_fig_val_en, "figures/fig_validation_en.svg", "figvalen", width = 9.8, height = 4.9)
+
 # --- Genereer docs/VALIDATION_REPORT.html met ingebedde vector-SVGs ---
 if (file.exists("docs/VALIDATION_REPORT.md") && requireNamespace("markdown", quietly = TRUE)) {
   md_lines   <- readLines("docs/VALIDATION_REPORT.md", warn = FALSE)

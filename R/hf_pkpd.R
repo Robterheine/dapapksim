@@ -17,57 +17,98 @@
 #      Simcyp s1) voor veilige pediatrische "start low, go slow" titratie.
 # =====================================================================
 
-hf_presets <- function() {
+hf_presets <- function(lang = "en") {
+  is_nl <- identical(lang, "nl")
   list(
     standard = list(
-      label         = "Standaard fysiologie (geen extra hartfalen-correctie)",
+      label = if (is_nl) {
+        "Standaard fysiologie (geen extra hartfalen-correctie)"
+      } else {
+        "Standard physiology (no heart failure adjustment)"
+      },
       rf_factor     = 1.00,
       cl_hep_factor = 1.00,
       edema_pct     = 0,
       alb_mode      = "auto",
       alb_val       = 40,
       f1_rel        = 1.00,
-      note          = "Gezonde leeftijdsnorm voor nierdoorbloeding, leverklaring en serumalbumine."
+      note = if (is_nl) {
+        "Gezonde leeftijdsnorm voor nierdoorbloeding, leverklaring en serumalbumine."
+      } else {
+        "Healthy age-expected baseline for renal perfusion, hepatic clearance, and serum albumin."
+      }
     ),
     hf_stable = list(
-      label         = "Stabiel chronisch pediatrisch HF (milde perfusiereductie, RF 80%)",
+      label = if (is_nl) {
+        "Stabiel chronisch pediatrisch HF (milde perfusiereductie, RF 80%)"
+      } else {
+        "Stable chronic paediatric HF (mild hypoperfusion, RF 80%)"
+      },
       rf_factor     = 0.80,
       cl_hep_factor = 0.90,
       edema_pct     = 0,
       alb_mode      = "auto",
       alb_val       = 38,
       f1_rel        = 1.00,
-      note          = "Weerspiegelt stabiel behandeld HFrEF/DCM onder achtergrondtherapie (ACEi/ARNI + diuretica; ~20% hogere AUC conform volwassen DAPA-HF popPK)."
+      note = if (is_nl) {
+        "Weerspiegelt stabiel behandeld HFrEF/DCM onder achtergrondtherapie (ACEi/ARNI + diuretica; ~20% hogere AUC conform volwassen DAPA-HF popPK)."
+      } else {
+        "Reflects stable treated HFrEF/DCM on background therapy (ACEi/ARNI + diuretics; ~20% higher AUC consistent with adult DAPA-HF popPK)."
+      }
     ),
     hf_cardiorenal = list(
-      label         = "Matig-ernstig cardiorenaal HF (RF 55%, leverstuwing 70%, +10% oedeem)",
+      label = if (is_nl) {
+        "Matig-ernstig cardiorenaal HF (RF 55%, leverstuwing 70%, +10% oedeem)"
+      } else {
+        "Moderate-to-severe cardiorenal HF (RF 55%, hepatic congestion 70%, +10% oedema)"
+      },
       rf_factor     = 0.55,
       cl_hep_factor = 0.70,
       edema_pct     = 10,
       alb_mode      = "manual",
       alb_val       = 30,
       f1_rel        = 0.90,
-      note          = "Low cardiac output + veneuze stuwing + 10% extracellulaire overvulling + milde hypoalbuminemie (30 g/L) en splanchnische malabsorptie (F1 = 90%)."
+      note = if (is_nl) {
+        "Low cardiac output + veneuze stuwing + 10% extracellulaire overvulling + milde hypoalbuminemie (30 g/L) en splanchnische malabsorptie (F1 = 90%)."
+      } else {
+        "Low cardiac output + venous congestion + 10% extracellular fluid overload + mild hypoalbuminaemia (30 g/L) and splanchnic malabsorption (F1 = 90%)."
+      }
     ),
     hf_fontan_ple = list(
-      label         = "Fontan / rechtszijdig HF met PLE (leverstuwing 65%, albumine 24 g/L)",
+      label = if (is_nl) {
+        "Fontan / rechtszijdig HF met PLE (leverstuwing 65%, albumine 24 g/L)"
+      } else {
+        "Fontan / right-sided HF with PLE (hepatic congestion 65%, albumin 24 g/L)"
+      },
       rf_factor     = 0.75,
       cl_hep_factor = 0.65,
       edema_pct     = 5,
       alb_mode      = "manual",
       alb_val       = 24,
       f1_rel        = 0.85,
-      note          = "Verhoogde centraal-veneuze druk (Fontan-leverstuwing) + uitgesproken hypoalbuminemie (24 g/L) door protein-losing enteropathy: totale spiegels dalen sterk terwijl vrije AUCu hoog blijft!"
+      note = if (is_nl) {
+        "Verhoogde centraal-veneuze druk (Fontan-leverstuwing) + uitgesproken hypoalbuminemie (24 g/L) door protein-losing enteropathy: totale spiegels dalen sterk terwijl vrije AUCu hoog blijft!"
+      } else {
+        "Elevated central venous pressure (Fontan hepatic congestion) + marked hypoalbuminaemia (24 g/L) from protein-losing enteropathy: total concentrations drop sharply while unbound AUCu remains high!"
+      }
     ),
     custom = list(
-      label         = "Handmatig aangepast hartfalen- / toedieningsprofiel",
+      label = if (is_nl) {
+        "Handmatig aangepast hartfalen- / toedieningsprofiel"
+      } else {
+        "Manually customised heart failure / administration profile"
+      },
       rf_factor     = NULL,
       cl_hep_factor = NULL,
       edema_pct     = NULL,
       alb_mode      = NULL,
       alb_val       = NULL,
       f1_rel        = NULL,
-      note          = "Vrij ingestelde pathofysiologische en farmaceutische parameters."
+      note = if (is_nl) {
+        "Vrij ingestelde pathofysiologische en farmaceutische parameters."
+      } else {
+        "Freely configured pathophysiological and biopharmaceutic parameters."
+      }
     )
   )
 }
@@ -86,7 +127,8 @@ hf_reference_targets <- function(target_lo = 20, target_hi = 75, safety_max = 90
 }
 
 # Typische volwassen DAPA-HF referentiecurves (10 mg QD en 5 mg QD steady state) voor SGLT2- en Cu-vergelijking
-adult_hf_reference_curves <- function(tau = 24, out_by = 0.1) {
+adult_hf_reference_curves <- function(tau = 24, out_by = 0.1, lang = "en") {
+  is_nl <- identical(lang, "nl")
   pop_ad <- rbind(
     data.frame(AGE = 66, WEIGHT = 82, HEIGHT = 1.75, SEXISMALE = 1, EGFR = 66),
     data.frame(AGE = 66, WEIGHT = 72, HEIGHT = 1.63, SEXISMALE = 0, EGFR = 66)
@@ -101,13 +143,13 @@ adult_hf_reference_curves <- function(tau = 24, out_by = 0.1) {
     t         = r10$times,
     Cu        = colMeans(r10$curve_ss_u),
     SGLT2_inh = colMeans(r10$occ_sglt2),
-    ref       = "Volwassen DAPA-HF ref: 10 mg 1x/dag"
+    ref       = if (is_nl) "Volwassen DAPA-HF ref: 10 mg 1x/dag" else "Adult DAPA-HF ref: 10 mg QD"
   )
   df05 <- data.frame(
     t         = r05$times,
     Cu        = colMeans(r05$curve_ss_u),
     SGLT2_inh = colMeans(r05$occ_sglt2),
-    ref       = "Volwassen startdosis ref: 5 mg 1x/dag"
+    ref       = if (is_nl) "Volwassen startdosis ref: 5 mg 1x/dag" else "Adult starting dose ref: 5 mg QD"
   )
   out <- rbind(df10, df05)
   out[out$t <= tau + 1e-9, , drop = FALSE]
@@ -195,7 +237,9 @@ compare_ontogeny_dosing <- function(pop,
                                     st,
                                     target_lo = 20,
                                     target_hi = 75,
-                                    safety_max = 90) {
+                                    safety_max = 90,
+                                    lang = "en") {
+  is_nl <- identical(lang, "nl")
   th <- nonmem_theta()
   eff_ka_mode <- if (!isTRUE(st$ka_bsv)) "none" else st$ka_mode
   om <- nonmem_omega(eff_ka_mode)
@@ -203,23 +247,39 @@ compare_ontogeny_dosing <- function(pop,
 
   # Trek exact dezelfde individuele eGFR en CL-BSV als in simulate_population_pk()
   set.seed(st$seed)
-  egfr_info <- egfr_from_copula(pop, egfr_iiv = TRUE)
+  egfr_info <- egfr_from_copula(pop, egfr_iiv = TRUE, lang = lang)
   eta_cl    <- if (om$cl > 0) exp(stats::rnorm(n, 0, sqrt(om$cl))) else rep(1.0, n)
 
   alb_ov <- if (!is.na(st$alb_override)) st$alb_override else NULL
   cur_dose <- if (st$dose_mode == "mg") st$dose_mg else st$dose_mgkg
 
   mat_keys <- c("farhan2024", "badee2019", "simcyp_s1")
-  mat_lbls <- c(
-    farhan2024 = "Farhan et al. 2024 (in-vivo UGT1A9, standaard)",
-    badee2019  = "Badee et al. 2019 (Jo 2021 PBPK s2)",
-    simcyp_s1  = "Simcyp standaard (Jo 2021 PBPK s1, conservatief)"
-  )
-  mat_short <- c(
-    farhan2024 = "Farhan 2024\n(standaard)",
-    badee2019  = "Badee 2019\n(PBPK s2)",
-    simcyp_s1  = "Simcyp s1\n(conservatief)"
-  )
+  mat_lbls <- if (is_nl) {
+    c(
+      farhan2024 = "Farhan et al. 2024 (in-vivo UGT1A9, standaard)",
+      badee2019  = "Badee et al. 2019 (Jo 2021 PBPK s2)",
+      simcyp_s1  = "Simcyp standaard (Jo 2021 PBPK s1, conservatief)"
+    )
+  } else {
+    c(
+      farhan2024 = "Farhan et al. 2024 (in-vivo UGT1A9, default)",
+      badee2019  = "Badee et al. 2019 (Jo 2021 PBPK s2)",
+      simcyp_s1  = "Simcyp default (Jo 2021 PBPK s1, conservative)"
+    )
+  }
+  mat_short <- if (is_nl) {
+    c(
+      farhan2024 = "Farhan 2024\n(standaard)",
+      badee2019  = "Badee 2019\n(PBPK s2)",
+      simcyp_s1  = "Simcyp s1\n(conservatief)"
+    )
+  } else {
+    c(
+      farhan2024 = "Farhan 2024\n(default)",
+      badee2019  = "Badee 2019\n(PBPK s2)",
+      simcyp_s1  = "Simcyp s1\n(conservative)"
+    )
+  }
 
   rows <- list()
   dist_list <- list()
@@ -266,17 +326,39 @@ compare_ontogeny_dosing <- function(pop,
     p_in  <- 100 * mean(aucu_cur >= target_lo & aucu_cur <= target_hi)
     p_hi  <- 100 * mean(aucu_cur > safety_max)
 
-    rows[[k]] <- data.frame(
-      `UGT1A9-ontogeniemodel`         = mat_lbls[[mk]],
-      `Mediane MAT`                   = sprintf("%.2f", stats::median(pk$MAT, na.rm = TRUE)),
-      `AUCu,24h,ss huidige dosis [P5-P95]` = sprintf("%.1f [%.1f - %.1f]", q_med, q_05, q_95),
-      `PTA streefvenster`             = sprintf("%.0f%%", p_in),
-      `> Veiligheidsplafond`          = sprintf("%.0f%%", p_hi),
-      `Startdosis (~5 mg-eq)`         = sprintf("%.2f mg/kg (%.2f mg)", d_start_mgkg, d_start_mg),
-      `Streefdosis (~10 mg-eq)`       = sprintf("%.2f mg/kg (%.2f mg)", d_target_mgkg, d_target_mg),
+    row_df <- data.frame(
+      col1 = mat_lbls[[mk]],
+      col2 = sprintf("%.2f", stats::median(pk$MAT, na.rm = TRUE)),
+      col3 = sprintf("%.1f [%.1f - %.1f]", q_med, q_05, q_95),
+      col4 = sprintf("%.0f%%", p_in),
+      col5 = sprintf("%.0f%%", p_hi),
+      col6 = sprintf("%.2f mg/kg (%.2f mg)", d_start_mgkg, d_start_mg),
+      col7 = sprintf("%.2f mg/kg (%.2f mg)", d_target_mgkg, d_target_mg),
       check.names = FALSE,
       stringsAsFactors = FALSE
     )
+    names(row_df) <- if (is_nl) {
+      c(
+        "UGT1A9-ontogeniemodel",
+        "Mediane MAT",
+        "AUCu,24h,ss huidige dosis [P5-P95]",
+        "PTA streefvenster",
+        "> Veiligheidsplafond",
+        "Startdosis (~5 mg-eq)",
+        "Streefdosis (~10 mg-eq)"
+      )
+    } else {
+      c(
+        "UGT1A9 ontogeny model",
+        "Median MAT",
+        "Current-dose AUCu,24h,ss [P5-P95]",
+        "PTA in target",
+        "> Safety ceiling",
+        "Starting dose (~5 mg-eq)",
+        "Target dose (~10 mg-eq)"
+      )
+    }
+    rows[[k]] <- row_df
 
     quant_rows[[k]] <- data.frame(
       key = mk, med = q_med, p05 = q_05, p95 = q_95, pct_in = p_in, pct_above_safety = p_hi,
@@ -298,40 +380,82 @@ compare_ontogeny_dosing <- function(pop,
 
   alerts <- list()
   if (min_age < 0.8 && (max_age - min_age) > 1.2) {
-    alerts[[length(alerts) + 1L]] <- list(
-      lead = "Heterogeen leeftijdsstratum over het eerste levensjaar:",
-      body = sprintf("Tussen 0 en 12 maanden nemen zowel UGT1A9-activiteit als GFR niet-lineair toe. Stratificeer de huidige selectie (%.2f–%.2f jaar) bij voorkeur in smalle subcohorten (bv. 0.08–0.25, 0.25–0.5 en 0.5–1 jaar).", min_age, max_age)
-    )
+    alerts[[length(alerts) + 1L]] <- if (is_nl) {
+      list(
+        lead = "Heterogeen leeftijdsstratum over het eerste levensjaar:",
+        body = sprintf("Tussen 0 en 12 maanden nemen zowel UGT1A9-activiteit als GFR niet-lineair toe. Stratificeer de huidige selectie (%.2f–%.2f jaar) bij voorkeur in smalle subcohorten (bv. 0.08–0.25, 0.25–0.5 en 0.5–1 jaar).", min_age, max_age)
+      )
+    } else {
+      list(
+        lead = "Heterogeneous age stratum spanning the first year of life:",
+        body = sprintf("Between 0 and 12 months, both UGT1A9 activity and GFR increase non-linearly. Preferably stratify the current selection (%.2f–%.2f years) into narrower sub-cohorts (e.g. 0.08–0.25, 0.25–0.5, and 0.5–1 years).", min_age, max_age)
+      )
+    }
   }
   if (ont_ratio >= 1.5) {
-    alerts[[length(alerts) + 1L]] <- list(
-      lead = sprintf("Divergentie in UGT1A9-ontogenie (factor %.1fx):", ont_ratio),
-      body = sprintf("Onder 6–12 maanden wijken snelle in-vivo rijping (Farhan 2024) en conservatieve PBPK-ontogenie (Simcyp s1) substantieel uiteen. Initieer bij voorkeur op de conservatieve startdosis (%.2f mg/kg/dag) met stapsgewijze optitratie op geleide van klinische tolerantie.", min(start_mgkg_vec))
-    )
+    alerts[[length(alerts) + 1L]] <- if (is_nl) {
+      list(
+        lead = sprintf("Divergentie in UGT1A9-ontogenie (factor %.1fx):", ont_ratio),
+        body = sprintf("Onder 6–12 maanden wijken snelle in-vivo rijping (Farhan 2024) en conservatieve PBPK-ontogenie (Simcyp s1) substantieel uiteen. Initieer bij voorkeur op de conservatieve startdosis (%.2f mg/kg/dag) met stapsgewijze optitratie op geleide van klinische tolerantie.", min(start_mgkg_vec))
+      )
+    } else {
+      list(
+        lead = sprintf("UGT1A9 ontogeny divergence (%.1fx fold):", ont_ratio),
+        body = sprintf("Below 6–12 months, rapid in-vivo maturation (Farhan 2024) and conservative PBPK ontogeny (Simcyp s1) diverge substantially. Preferably initiate at the conservative starting dose (%.2f mg/kg/day) with stepwise up-titration guided by clinical tolerance.", min(start_mgkg_vec))
+      )
+    }
   }
   if (min_age < 2.0) {
-    alerts[[length(alerts) + 1L]] <- list(
-      lead = "Nauwere metabole veiligheidsmarge (< 2 jaar, 'sick-day rules'):",
-      body = "Door beperkte hepatische glycogeenreserves kan SGLT2-geïnduceerde normoglykemische glucosurie bij intercurrent vasten, braken of gastro-enteritis leiden tot hypoglykemie en euglykemische ketoacidose; onderbreek toediening tijdelijk bij verminderde enterale intake."
-    )
+    alerts[[length(alerts) + 1L]] <- if (is_nl) {
+      list(
+        lead = "Nauwere metabole veiligheidsmarge (< 2 jaar, 'sick-day rules'):",
+        body = "Door beperkte hepatische glycogeenreserves kan SGLT2-geïnduceerde normoglykemische glucosurie bij intercurrent vasten, braken of gastro-enteritis leiden tot hypoglykemie en euglykemische ketoacidose; onderbreek toediening tijdelijk bij verminderde enterale intake."
+      )
+    } else {
+      list(
+        lead = "Narrower metabolic safety margin (< 2 years, 'sick-day rules'):",
+        body = "Because of limited hepatic glycogen stores, SGLT2-induced normoglycaemic glucosuria during intercurrent fasting, vomiting, or gastroenteritis may precipitate hypoglycaemia and euglycaemic ketoacidosis; temporarily withhold dosing during reduced enteral intake."
+      )
+    }
   }
   if (st$rf_factor < 0.85 || med_age < 0.25) {
-    alerts[[length(alerts) + 1L]] <- list(
-      lead = "PK–PD dissociatie bij verlaagde GFR (geen opwaartse diuretische titratie):",
-      body = "Bij onrijpe neonatale nefronen of cardiorenaal syndroom neemt AUCu,24h toe terwijl de natriuretische respons begrensd wordt door de verlaagde gefiltreerde solute-vracht (luminale SGLT2-bezetting ligt al > 80–90%). Bewaak op prerenale AKI bij gelijktijdig gebruik van lisdiuretica en RAS-remmers."
-    )
+    alerts[[length(alerts) + 1L]] <- if (is_nl) {
+      list(
+        lead = "PK–PD dissociatie bij verlaagde GFR (geen opwaartse diuretische titratie):",
+        body = "Bij onrijpe neonatale nefronen of cardiorenaal syndroom neemt AUCu,24h toe terwijl de natriuretische respons begrensd wordt door de verlaagde gefiltreerde solute-vracht (luminale SGLT2-bezetting ligt al > 80–90%). Bewaak op prerenale AKI bij gelijktijdig gebruik van lisdiuretica en RAS-remmers."
+      )
+    } else {
+      list(
+        lead = "PK–PD dissociation at reduced GFR (avoid upward diuretic titration):",
+        body = "In immature neonatal nephrons or cardiorenal syndrome, AUCu,24h rises while natriuretic response is capped by reduced filtered solute load (luminal SGLT2 occupancy is already > 80–90%). Monitor closely for prerenal AKI alongside loop diuretics and RAS inhibitors."
+      )
+    }
   }
   if (!is.na(st$alb_override) && st$alb_override < 34) {
-    alerts[[length(alerts) + 1L]] <- list(
-      lead = sprintf("Hypoalbuminemie ([Alb] = %g g/L) — interpretatie van TDM-spiegels:", st$alb_override),
-      body = "Een verhoogde vrije fractie fu verhoogt voor dit laag-extractiefarmacon de totale CL/F en verlaagt totale plasmaconcentraties C(t), terwijl de farmacologisch actieve ongebonden blootstelling (AUCu,24h) ongewijzigd blijft."
-    )
+    alerts[[length(alerts) + 1L]] <- if (is_nl) {
+      list(
+        lead = sprintf("Hypoalbuminemie ([Alb] = %g g/L) — interpretatie van TDM-spiegels:", st$alb_override),
+        body = "Een verhoogde vrije fractie fu verhoogt voor dit laag-extractiefarmacon de totale CL/F en verlaagt totale plasmaconcentraties C(t), terwijl de farmacologisch actieve ongebonden blootstelling (AUCu,24h) ongewijzigd blijft."
+      )
+    } else {
+      list(
+        lead = sprintf("Hypoalbuminaemia ([Alb] = %g g/L) — TDM interpretation:", st$alb_override),
+        body = "For this low-extraction drug, an increased unbound fraction fu increases apparent total CL/F and lowers total plasma concentrations C(t), whereas pharmacologically active unbound exposure (AUCu,24h) remains unchanged."
+      )
+    }
   }
   if (st$edema_pct > 0) {
-    alerts[[length(alerts) + 1L]] <- list(
-      lead = sprintf("Extracellulaire overvulling (+%g%%) — doseer op euvolemisch drooggewicht:", st$edema_pct),
-      body = sprintf("Interstitieel oedeem vergroot het verdelingsvolume maar draagt niet bij aan hepatische of renale UGT1A9-capaciteit; baseer mg/kg-dosering op het geschatte drooggewicht (mediaan %.1f kg vs. %.1f kg actueel).", med_wt_dry, stats::median(pop$WEIGHT, na.rm = TRUE))
-    )
+    alerts[[length(alerts) + 1L]] <- if (is_nl) {
+      list(
+        lead = sprintf("Extracellulaire overvulling (+%g%%) — doseer op euvolemisch drooggewicht:", st$edema_pct),
+        body = sprintf("Interstitieel oedeem vergroot het verdelingsvolume maar draagt niet bij aan hepatische of renale UGT1A9-capaciteit; baseer mg/kg-dosering op het geschatte drooggewicht (mediaan %.1f kg vs. %.1f kg actueel).", med_wt_dry, stats::median(pop$WEIGHT, na.rm = TRUE))
+      )
+    } else {
+      list(
+        lead = sprintf("Extracellular fluid overload (+%g%%) — dose on euvolaemic dry weight:", st$edema_pct),
+        body = sprintf("Interstitial oedema expands distribution volume without adding hepatic or renal UGT1A9 capacity; base mg/kg dosing on estimated dry weight (median %.1f kg vs. %.1f kg actual).", med_wt_dry, stats::median(pop$WEIGHT, na.rm = TRUE))
+      )
+    }
   }
 
   list(
@@ -355,31 +479,59 @@ generate_pediatric_hf_regimen_table <- function(rf_factor = 1.0,
                                                 alb_override = NA_real_,
                                                 f1_rel = 1.0,
                                                 tau = 24,
-                                                safety_max = 90) {
+                                                safety_max = 90,
+                                                lang = "en") {
+  is_nl <- identical(lang, "nl")
   strata <- data.frame(
-    groep = c(
-      "Pasgeborene (0 - 1 mnd)",
-      "Jonge zuigeling (1 - 3 mnd)",
-      "Zuigeling (3 - 6 mnd)",
-      "Oudere zuigeling (6 - 12 mnd)",
-      "Dreumes (1 - 2 jaar)",
-      "Peuter / kleuter (2 - 6 jaar)",
-      "Schoolkind (6 - 12 jaar)",
-      "Adolescent (12 - 18 jaar)"
-    ),
+    groep = if (is_nl) {
+      c(
+        "Pasgeborene (0 - 1 mnd)",
+        "Jonge zuigeling (1 - 3 mnd)",
+        "Zuigeling (3 - 6 mnd)",
+        "Oudere zuigeling (6 - 12 mnd)",
+        "Dreumes (1 - 2 jaar)",
+        "Peuter / kleuter (2 - 6 jaar)",
+        "Schoolkind (6 - 12 jaar)",
+        "Adolescent (12 - 18 jaar)"
+      )
+    } else {
+      c(
+        "Neonate (0 - 1 mo)",
+        "Young infant (1 - 3 mo)",
+        "Infant (3 - 6 mo)",
+        "Older infant (6 - 12 mo)",
+        "Toddler (1 - 2 y)",
+        "Preschool child (2 - 6 y)",
+        "School-age child (6 - 12 y)",
+        "Adolescent (12 - 18 y)"
+      )
+    },
     age_mid = c(0.04, 0.17, 0.375, 0.75, 1.50, 4.00, 9.00, 15.00),
     wt_dry  = c(3.5,  5.0,  6.7,   8.8,  11.0, 16.5, 30.0, 56.0),
     ht_m    = c(0.51, 0.57, 0.63,  0.71, 0.81, 1.03, 1.34, 1.66),
-    focus   = c(
-      "Zeer lage GFR + onrijp UGT1A9; hoog hypoglykemie/AKI-risico -> uiterste terughoudendheid",
-      "4x verschil Farhan vs Simcyp s1; start conservatief + strikte glucose/vochtmonitoring",
-      "Snelle GFR- & UGT1A9-rijping; start laag, titreer op geleide van tolerantie/groei",
-      "GFR nadert kinderwaarde; let op sick-day rules (vasten/gastro-enteritis) & lisdiuretica",
-      "Hogere klaring per kg (allometrie): 0.1 -> 0.2 mg/kg geeft 5 -> 10 mg-eq AUCu",
-      "Stabiele allometrische fase: start 0.1 mg/kg, streef 0.18-0.20 mg/kg (op drooggewicht)",
-      "Overgang naar vaste tabletsterktes mogelijk (start 2.5 mg, streef 5 mg rond ~25-30 kg)",
-      "Volwassen klaring bereikt: start 5 mg, streef 10 mg 1x/dag (plafond 10 mg)"
-    ),
+    focus = if (is_nl) {
+      c(
+        "Zeer lage GFR + onrijp UGT1A9; hoog hypoglykemie/AKI-risico -> uiterste terughoudendheid",
+        "4x verschil Farhan vs Simcyp s1; start conservatief + strikte glucose/vochtmonitoring",
+        "Snelle GFR- & UGT1A9-rijping; start laag, titreer op geleide van tolerantie/groei",
+        "GFR nadert kinderwaarde; let op sick-day rules (vasten/gastro-enteritis) & lisdiuretica",
+        "Hogere klaring per kg (allometrie): 0.1 -> 0.2 mg/kg geeft 5 -> 10 mg-eq AUCu",
+        "Stabiele allometrische fase: start 0.1 mg/kg, streef 0.18-0.20 mg/kg (op drooggewicht)",
+        "Overgang naar vaste tabletsterktes mogelijk (start 2.5 mg, streef 5 mg rond ~25-30 kg)",
+        "Volwassen klaring bereikt: start 5 mg, streef 10 mg 1x/dag (plafond 10 mg)"
+      )
+    } else {
+      c(
+        "Very low GFR + immature UGT1A9; high hypoglycaemia/AKI risk -> extreme caution",
+        "4x divergence Farhan vs Simcyp s1; start conservatively + strict glucose/fluid monitoring",
+        "Rapid GFR & UGT1A9 maturation; start low, titrate guided by tolerance and growth",
+        "GFR approaches childhood norm; apply sick-day rules (fasting/gastroenteritis) & diuretic care",
+        "Higher clearance per kg (allometry): 0.1 -> 0.2 mg/kg yields 5 -> 10 mg-eq AUCu",
+        "Stable allometric phase: start 0.1 mg/kg, target 0.18-0.20 mg/kg (on dry weight)",
+        "Transition to fixed tablet strengths feasible (start 2.5 mg, target 5 mg around ~25-30 kg)",
+        "Adult clearance reached: start 5 mg, target 10 mg once daily (10 mg cap)"
+      )
+    },
     stringsAsFactors = FALSE
   )
 
@@ -438,18 +590,42 @@ generate_pediatric_hf_regimen_table <- function(rf_factor = 1.0,
       sprintf("%.2f - %.2f mg/kg (%.2f - %.2f mg)", d_lo, d_hi, min(10, d_lo * s$wt_dry), min(10, d_hi * s$wt_dry))
     }
 
-    data.frame(
-      `Leeftijdsgroep`                 = s$groep,
-      `Drooggewicht`                   = sprintf("%.1f kg", s$wt_dry),
-      `Eff. eGFR`                      = sprintf("%.0f", stats::median(p_far$EGFR)),
-      `MAT (Simcyp - Farhan)`          = sprintf("%.2f - %.2f", p_sim$MAT[1], p_far$MAT[1]),
-      `Veilige startdosis (5 mg-eq)`   = sprintf("%.2f mg/kg (%.2f mg)", d_start_con, min(5, d_start_con * s$wt_dry)),
-      `Streefdosis-bereik (10 mg-eq)`  = targ_txt,
-      `SGLT2-remming / Renale PD`      = sprintf("%.0f%% / %.0f%%", mean(r_pd$metrics$SGLT2_inh_avg), mean(r_pd$metrics$Renal_PD_eff)),
-      `Klinisch PK/PD-aandachtspunt`   = s$focus,
+    row_df <- data.frame(
+      col1 = s$groep,
+      col2 = sprintf("%.1f kg", s$wt_dry),
+      col3 = sprintf("%.0f", stats::median(p_far$EGFR)),
+      col4 = sprintf("%.2f - %.2f", p_sim$MAT[1], p_far$MAT[1]),
+      col5 = sprintf("%.2f mg/kg (%.2f mg)", d_start_con, min(5, d_start_con * s$wt_dry)),
+      col6 = targ_txt,
+      col7 = sprintf("%.0f%% / %.0f%%", mean(r_pd$metrics$SGLT2_inh_avg), mean(r_pd$metrics$Renal_PD_eff)),
+      col8 = s$focus,
       check.names = FALSE,
       stringsAsFactors = FALSE
     )
+    names(row_df) <- if (is_nl) {
+      c(
+        "Leeftijdsgroep",
+        "Drooggewicht",
+        "Eff. eGFR",
+        "MAT (Simcyp - Farhan)",
+        "Veilige startdosis (5 mg-eq)",
+        "Streefdosis-bereik (10 mg-eq)",
+        "SGLT2-remming / Renale PD",
+        "Klinisch PK/PD-aandachtspunt"
+      )
+    } else {
+      c(
+        "Age group",
+        "Dry weight",
+        "Eff. eGFR",
+        "MAT (Simcyp - Farhan)",
+        "Safe starting dose (5 mg-eq)",
+        "Target dose range (10 mg-eq)",
+        "SGLT2 inh. / Renal PD",
+        "Clinical PK/PD focus"
+      )
+    }
+    row_df
   })
 
   do.call(rbind, out_rows)
@@ -458,31 +634,51 @@ generate_pediatric_hf_regimen_table <- function(rf_factor = 1.0,
 # Visuele liniaal van het therapeutisch venster: laat in één oogopslag zien waar de
 # grenzen (20, 75 en 90 ng*h/mL) vandaan komen uit volwassen studies én waar het
 # gesimuleerde kindercohort op deze schaal valt.
-build_window_explainer_plot <- function(s, tg, ont) {
+build_window_explainer_plot <- function(s, tg, ont, lang = "en") {
+  is_nl <- identical(lang, "nl")
   st  <- s$res$settings
   qdf <- ont$quant_df
 
   chosen_key <- st$mat_option
   alt_key    <- if (identical(chosen_key, "simcyp_s1")) "farhan2024" else "simcyp_s1"
-  short_map  <- c(
-    farhan2024 = "Farhan 2024 (in-vivo UGT1A9)",
-    badee2019  = "Badee 2019 (PBPK s2)",
-    simcyp_s1  = "Simcyp s1 (conservatief)"
-  )
+  short_map  <- if (is_nl) {
+    c(
+      farhan2024 = "Farhan 2024 (in-vivo UGT1A9)",
+      badee2019  = "Badee 2019 (PBPK s2)",
+      simcyp_s1  = "Simcyp s1 (conservatief)"
+    )
+  } else {
+    c(
+      farhan2024 = "Farhan 2024 (in-vivo UGT1A9)",
+      badee2019  = "Badee 2019 (PBPK s2)",
+      simcyp_s1  = "Simcyp s1 (conservative)"
+    )
+  }
 
   q_main <- qdf[qdf$key == chosen_key, , drop = FALSE]
   q_alt  <- qdf[qdf$key == alt_key, , drop = FALSE]
 
   bars <- data.frame(
     y = c(6, 5, 4, 3, 2, 1),
-    groep = c(
-      sprintf("Gesimuleerd cohort — %s", short_map[[chosen_key]]),
-      sprintf("Gesimuleerd cohort — %s", short_map[[alt_key]]),
-      "Volwassen 5 mg 1x/dag (referentie startdosis, eGFR 90)",
-      "Volwassen 10 mg 1x/dag (normale nierfunctie, eGFR >= 90)",
-      "Volwassen 10 mg 1x/dag (DAPA-HF / milde CKD, eGFR 60-89)",
-      "Volwassen 10 mg 1x/dag (ernstige CKD, eGFR 15-29)"
-    ),
+    groep = if (is_nl) {
+      c(
+        sprintf("Gesimuleerd cohort — %s", short_map[[chosen_key]]),
+        sprintf("Gesimuleerd cohort — %s", short_map[[alt_key]]),
+        "Volwassen 5 mg 1x/dag (referentie startdosis, eGFR 90)",
+        "Volwassen 10 mg 1x/dag (normale nierfunctie, eGFR >= 90)",
+        "Volwassen 10 mg 1x/dag (DAPA-HF / milde CKD, eGFR 60-89)",
+        "Volwassen 10 mg 1x/dag (ernstige CKD, eGFR 15-29)"
+      )
+    } else {
+      c(
+        sprintf("Simulated cohort — %s", short_map[[chosen_key]]),
+        sprintf("Simulated cohort — %s", short_map[[alt_key]]),
+        "Adult 5 mg QD (starting dose reference, eGFR 90)",
+        "Adult 10 mg QD (normal renal function, eGFR >= 90)",
+        "Adult 10 mg QD (DAPA-HF / mild CKD, eGFR 60-89)",
+        "Adult 10 mg QD (severe CKD, eGFR 15-29)"
+      )
+    },
     med = c(q_main$med, q_alt$med, 19.2, 38.5, 48.2, 87.7),
     p05 = c(q_main$p05, q_alt$p05, 11.8, 23.7, 29.2, 56.8),
     p95 = c(q_main$p95, q_alt$p95, 29.0, 57.9, 74.5, 119.5),
@@ -516,11 +712,15 @@ build_window_explainer_plot <- function(s, tg, ont) {
     geom_hline(yintercept = 4.5, color = "#7b8a9b", linetype = "dotted", linewidth = 0.7) +
     annotate("text", x = z_mid_lo, y = zone_top, label = sprintf("Subtherap.\n(< %g)", tg$target_lo),
              size = 3.0, fontface = "bold", color = "#345474", lineheight = 0.95) +
-    annotate("text", x = z_mid_ok, y = zone_top, label = sprintf("Streefvenster DAPA-HF\n(%g – %g ng*h/mL)", tg$target_lo, tg$target_hi),
+    annotate("text", x = z_mid_ok, y = zone_top,
+             label = sprintf(if (is_nl) "Streefvenster DAPA-HF\n(%g – %g ng*h/mL)" else "DAPA-HF target window\n(%g – %g ng*h/mL)",
+                             tg$target_lo, tg$target_hi),
              size = 3.3, fontface = "bold", color = "#145a2b", lineheight = 0.95) +
-    annotate("text", x = z_mid_hi, y = zone_top, label = sprintf("Hoog\n(%g–%g)", tg$target_hi, tg$safety_max),
+    annotate("text", x = z_mid_hi, y = zone_top,
+             label = sprintf(if (is_nl) "Hoog\n(%g–%g)" else "High\n(%g–%g)", tg$target_hi, tg$safety_max),
              size = 3.0, fontface = "bold", color = "#8a5300", lineheight = 0.95) +
-    annotate("text", x = z_mid_mx, y = zone_top, label = sprintf("> Veiligheidsplafond\n(> %g)", tg$safety_max),
+    annotate("text", x = z_mid_mx, y = zone_top,
+             label = sprintf(if (is_nl) "> Veiligheidsplafond\n(> %g)" else "> Safety ceiling\n(> %g)", tg$safety_max),
              size = 3.05, fontface = "bold", color = "#991b1b", lineheight = 0.95) +
     geom_errorbarh(aes(xmin = p05, xmax = p95_plot, color = type, linetype = type),
                    height = 0.22, linewidth = 1.15) +
@@ -555,9 +755,17 @@ build_window_explainer_plot <- function(s, tg, ont) {
       ad_ckd   = 15
     )) +
     labs(
-      title = "Afleiding therapeutisch streefvenster: volwassen referenties vs. gesimuleerd cohort",
-      subtitle = "Mediaan en 90%-predictie-interval [P5 – P95] van steady-state AUCu,24h (Penland et al. 2023 Tabel S4; DAPA-HF)",
-      x = "Ongebonden blootstelling AUCu,24h,ss (ng*h/mL)",
+      title = if (is_nl) {
+        "Afleiding therapeutisch streefvenster: volwassen referenties vs. gesimuleerd cohort"
+      } else {
+        "Therapeutic target window derivation: adult references vs. simulated cohort"
+      },
+      subtitle = if (is_nl) {
+        "Mediaan en 90%-predictie-interval [P5 – P95] van steady-state AUCu,24h (Penland et al. 2023 Tabel S4; DAPA-HF)"
+      } else {
+        "Median and 90% prediction interval [P5 – P95] of steady-state AUCu,24h (Penland et al. 2023 Table S4; DAPA-HF)"
+      },
+      x = if (is_nl) "Ongebonden blootstelling AUCu,24h,ss (ng*h/mL)" else "Unbound exposure AUCu,24h,ss (ng*h/mL)",
       y = NULL
     ) +
     theme_minimal(base_size = 12) +
@@ -572,4 +780,3 @@ build_window_explainer_plot <- function(s, tg, ont) {
       legend.position = "none"
     )
 }
-

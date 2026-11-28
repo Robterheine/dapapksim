@@ -38,6 +38,10 @@ populatie-PK model. Virtuele patiëntenpopulaties worden gegenereerd met het
   afmetingen en resolutie (met Engelstalige as- en titelteksten voor publicatie).
 - **Inter-occasion variabiliteit (IOV) op `F1`**: mean-gecentreerd log-normaal schuifje
   (`0–100% CV`, zodat `E[F1] = 1.0`) voor variabiliteit in toegediende sonde-/dispersiedosis.
+- **Tweetalig (Engels / Nederlands, standaard Engels)**: schakelaar rechtsboven in de app
+  (`English | Nederlands`) waarmee de volledige interface, keuzelijsten, figuren, tabellen,
+  waarschuwingen en in-app documentatie direct tussen Engels en Nederlands wisselen zonder
+  herstart van de simulatie.
 - **Snelle exacte analytische solver**: gesloten-vorm `ADVAN4` toestandspropagator
   (machineprecisie, ~50× sneller dan numerieke RK4-integratie, met exacte behandeling van
   absorptielagtijd `ALAG1` en optionele directe analytische steady state).
@@ -66,24 +70,31 @@ in R in: `copulapop::set_data_path(system.file("data", package = "copulapop"))`.
 
 ```
 dapapksim/
-├── app.R                       # Shiny UI + server (Nederlands)
+├── app.R                          # Shiny UI + server (tweetalig EN/NL; standaard Engels)
 ├── R/
-│   ├── pk_model.R              # Fysiologisch 6-pijler popPK-model + analytische ADVAN4-solver + PD
-│   ├── hf_pkpd.R               # Pediatrisch hartfalen: pathofysiologie, PTA & duale PK-PD module
-│   └── population.R            # Adaptieve wrapper rond copulapop::generate_population()
+│   ├── pk_model.R                 # Fysiologisch 6-pijler popPK-model + analytische ADVAN4-solver + PD
+│   ├── hf_pkpd.R                  # Pediatrisch hartfalen: pathofysiologie, PTA & duale PK-PD module
+│   └── population.R               # Adaptieve wrapper rond copulapop::generate_population()
 ├── scripts/
-│   └── validate_model.R        # Reproduceerbare R-validatiesuite & SVG-figuurgenerator
-├── hf_pkpd_rationale.md        # Wetenschappelijke PK- en PD-rationale voor pediatrisch hartfalen
-├── model_doc.md                # Modelbeschrijving, fysiologische aannames en bronnen (tab in app)
-├── VALIDATION.md               # Samenvattende validatie (Nederlands)
+│   └── validate_model.R           # Reproduceerbare R-validatiesuite & SVG-figuurgenerator
+├── hf_pkpd_rationale_en.md        # PK/PD rationale voor pediatrisch hartfalen (Engels, standaard)
+├── hf_pkpd_rationale.md           # PK/PD rationale voor pediatrisch hartfalen (Nederlands)
+├── model_rationale_en.md          # Stapsgewijze fysiologische afleiding & kalibratie (Engels)
+├── model_rationale.md             # Stapsgewijze fysiologische afleiding & kalibratie (Nederlands)
+├── model_doc_en.md                # Volledige wiskundige formules & R/NONMEM-code (Engels)
+├── model_doc.md                   # Volledige wiskundige formules & R/NONMEM-code (Nederlands)
+├── VALIDATION_en.md               # Samenvattende validatie (Engels)
+├── VALIDATION.md                  # Samenvattende validatie (Nederlands)
+├── about_en.md                    # Over deze app (Engels)
+├── about.md                       # Over deze app (Nederlands)
 ├── docs/
-│   ├── VALIDATION_REPORT.md    # Volledig validatierapport (Engels: Penland, Kasichayanula, Tirucherai, Jo PBPK)
-│   ├── VALIDATION_REPORT.html  # Zelfstandig HTML-rapport met ingebedde SVG-figuren
-│   ├── VALIDATION_REPORT.pdf   # PDF-versie van het validatierapport
-│   ├── validation_results.json # Exacte numerieke output van scripts/validate_model.R
-│   ├── EVALUATION.md           # Expert-review (klinisch farmacoloog + UI-designer)
+│   ├── VALIDATION_REPORT.md       # Volledig validatierapport (Engels: Penland, Kasichayanula, Tirucherai, Jo PBPK)
+│   ├── VALIDATION_REPORT.html     # Zelfstandig HTML-rapport met ingebedde SVG-figuren
+│   ├── VALIDATION_REPORT.pdf      # PDF-versie van het validatierapport
+│   ├── validation_results.json    # Exacte numerieke output van scripts/validate_model.R
+│   ├── EVALUATION.md              # Expert-review (klinisch farmacoloog + UI-designer)
 │   └── HANDOVER_renale_CL_UGT1A9_maturatie.md
-├── figures/                    # Gegenereerde validatiefiguren (SVG)
+├── figures/                       # Gegenereerde validatiefiguren (SVG)
 ├── www/style.css
 └── README.md
 ```

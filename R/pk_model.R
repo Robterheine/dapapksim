@@ -72,10 +72,15 @@ nonmem_theta <- function() {
 
 # Maturatiefuncties voor hepatische + renale tubulaire UGT1A9, te kiezen in de app.
 # Alle drie zijn geschaald op volwassen referentie = 1.0.
-maturation_functions <- function() {
+maturation_functions <- function(lang = "en") {
+  is_nl <- identical(lang, "nl")
   list(
     farhan2024 = list(
-      label = "Farhan et al. 2024 - doi:10.1002/jcph.2484 (in-vivo UGT1A9, standaard)",
+      label = if (is_nl) {
+        "Farhan et al. 2024 - doi:10.1002/jcph.2484 (in-vivo UGT1A9, standaard)"
+      } else {
+        "Farhan et al. 2024 - doi:10.1002/jcph.2484 (in-vivo UGT1A9, default)"
+      },
       short = "Farhan 2024 (in-vivo)",
       fun = function(age, th = nonmem_theta()) {
         a <- pmax(as.numeric(age), 0)
@@ -93,7 +98,11 @@ maturation_functions <- function() {
       }
     ),
     simcyp_s1 = list(
-      label = "Simcyp standaardontogenie via Jo et al. 2021 scenario 1 - doi:10.1002/psp4.12577",
+      label = if (is_nl) {
+        "Simcyp standaardontogenie via Jo et al. 2021 scenario 1 - doi:10.1002/psp4.12577"
+      } else {
+        "Simcyp default ontogeny via Jo et al. 2021 scenario 1 - doi:10.1002/psp4.12577"
+      },
       short = "Simcyp s1 (Jo 2021 s1)",
       fun = function(age, th = NULL) {
         a <- pmax(as.numeric(age), 0)
@@ -222,7 +231,8 @@ egfr_ckdepi_2021 <- function(creat_umol, age, sex_male) {
 #     gebruik pop$EGFR direct.
 # - Als zowel CREAT als EGFR ontbreken (bv. NHANES, HSE):
 #     Rhodin et al. 2009 PMA-GFR maturatie + fysiologische BSV (SD = 0.215 op log-schaal).
-egfr_from_copula <- function(pop, egfr_iiv = TRUE, egfr_cv_sd = 0.215) {
+egfr_from_copula <- function(pop, egfr_iiv = TRUE, egfr_cv_sd = 0.215, lang = "en") {
+  is_nl <- identical(lang, "nl")
   n <- nrow(pop)
   age <- as.numeric(pop$AGE)
   bwt <- as.numeric(pop$WEIGHT)
@@ -256,12 +266,18 @@ egfr_from_copula <- function(pop, egfr_iiv = TRUE, egfr_cv_sd = 0.215) {
       egfr[idx_inf] <- ngfr[idx_inf] * mult
     }
     egfr <- pmin(pmax(egfr, 5), 180)
-    parts <- c(
+    parts_nl <- c(
       if (length(idx_inf) > 0) "Rhodin 2009 PMA (<1 j)" else NULL,
       if (length(idx_ped) > 0) "Pierce 2021 CKiD U25 (1-<18 j, uit CREAT)" else NULL,
       if (length(idx_adult) > 0) "CKD-EPI 2021 (>=18 j, uit CREAT)" else NULL
     )
-    source <- paste0("Dataset met CREAT: ", paste(parts, collapse = " + "), " [begrensd 5-180 mL/min/1.73m2]")
+    parts_en <- c(
+      if (length(idx_inf) > 0) "Rhodin 2009 PMA (<1 y)" else NULL,
+      if (length(idx_ped) > 0) "Pierce 2021 CKiD U25 (1-<18 y, from CREAT)" else NULL,
+      if (length(idx_adult) > 0) "CKD-EPI 2021 (>=18 y, from CREAT)" else NULL
+    )
+    source_nl <- paste0("Dataset met CREAT: ", paste(parts_nl, collapse = " + "), " [begrensd 5-180 mL/min/1.73m2]")
+    source_en <- paste0("Dataset with CREAT: ", paste(parts_en, collapse = " + "), " [bounded 5-180 mL/min/1.73m2]")
   } else if ("EGFR" %in% names(pop) && any(!is.na(pop$EGFR))) {
     egfr <- as.numeric(pop$EGFR)
     miss <- which(is.na(egfr))
@@ -269,25 +285,43 @@ egfr_from_copula <- function(pop, egfr_iiv = TRUE, egfr_cv_sd = 0.215) {
       mult <- if (isTRUE(egfr_iiv)) exp(stats::rnorm(length(miss), 0, egfr_cv_sd)) else 1.0
       egfr[miss] <- pmin(pmax(ngfr[miss] * mult, 5), 180)
     }
-    source <- "Expliciet meegegeven EGFR-kolom (mL/min/1.73m2)"
+    source_nl <- "Expliciet meegegeven EGFR-kolom (mL/min/1.73m2)"
+    source_en <- "Explicitly supplied EGFR column (mL/min/1.73m2)"
   } else {
     mult <- if (isTRUE(egfr_iiv)) exp(stats::rnorm(n, 0, egfr_cv_sd)) else 1.0
     egfr <- pmin(pmax(ngfr * mult, 5), 180)
-    source <- paste0(
+    source_nl <- paste0(
       "Rhodin et al. 2009 PMA-GFR maturatie + leeftijdsafname",
       if (isTRUE(egfr_iiv)) " incl. fysiologische GFR-BSV (22% CV)" else " (typische waarde)",
       " (dataset zonder creatinine)"
     )
+    source_en <- paste0(
+      "Rhodin et al. 2009 PMA-GFR maturation + age senescence",
+      if (isTRUE(egfr_iiv)) " incl. physiological GFR-BSV (22% CV)" else " (typical value)",
+      " (dataset without creatinine)"
+    )
   }
 
-  unit_note <- if (all(egfr >= 5 & egfr <= 180)) {
-    "sanity-check OK: alle waarden in fysiologisch bereik 5-180 mL/min/1.73m2"
+  if (all(egfr >= 5 & egfr <= 180)) {
+    unit_note_nl <- "sanity-check OK: alle waarden in fysiologisch bereik 5-180 mL/min/1.73m2"
+    unit_note_en <- "sanity check OK: all values in physiological range 5-180 mL/min/1.73m2"
   } else if (all(egfr >= 1 & egfr <= 300)) {
-    "sanity-check OK: alle waarden in bereik 1-300 mL/min/1.73m2"
+    unit_note_nl <- "sanity-check OK: alle waarden in bereik 1-300 mL/min/1.73m2"
+    unit_note_en <- "sanity check OK: all values in range 1-300 mL/min/1.73m2"
   } else {
-    "WAARSCHUWING: waarden buiten 1-300 - controleer de eenheid (mL/min/1.73m2 verwacht)"
+    unit_note_nl <- "WAARSCHUWING: waarden buiten 1-300 - controleer de eenheid (mL/min/1.73m2 verwacht)"
+    unit_note_en <- "WARNING: values outside 1-300 - check units (mL/min/1.73m2 expected)"
   }
-  list(egfr = egfr, ngfr = ngfr, source = source, unit_note = unit_note)
+  list(
+    egfr         = egfr,
+    ngfr         = ngfr,
+    source       = if (is_nl) source_nl else source_en,
+    source_en    = source_en,
+    source_nl    = source_nl,
+    unit_note    = if (is_nl) unit_note_nl else unit_note_en,
+    unit_note_en = unit_note_en,
+    unit_note_nl = unit_note_nl
+  )
 }
 
 # Individuele PK-parameters uit de virtuele populatie (6-pijler fysiologisch model,
@@ -732,9 +766,11 @@ simulate_population_pk <- function(pop,
 
   ss_attainment <- stats::median(auc_tau / auc_inf_sd, na.rm = TRUE)
 
-  egfr_src_lbl <- egfr_info$source
+  egfr_src_en <- egfr_info$source_en
+  egfr_src_nl <- egfr_info$source_nl
   if (abs(p$RF_FACTOR - 1.0) > 1e-12) {
-    egfr_src_lbl <- sprintf("%s [cardiorenaal geschaald x %.2f]", egfr_src_lbl, p$RF_FACTOR)
+    egfr_src_en <- sprintf("%s [cardiorenally scaled x %.2f]", egfr_src_en, p$RF_FACTOR)
+    egfr_src_nl <- sprintf("%s [cardiorenaal geschaald x %.2f]", egfr_src_nl, p$RF_FACTOR)
   }
 
   list(
@@ -773,8 +809,12 @@ simulate_population_pk <- function(pop,
       n                 = n,
       mat_option        = mat_option,
       mat_label         = maturation_functions()[[mat_option]]$short,
-      egfr_source       = egfr_src_lbl,
-      egfr_unit_note    = egfr_info$unit_note
+      egfr_source       = egfr_src_en,
+      egfr_source_en    = egfr_src_en,
+      egfr_source_nl    = egfr_src_nl,
+      egfr_unit_note    = egfr_info$unit_note_en,
+      egfr_unit_note_en = egfr_info$unit_note_en,
+      egfr_unit_note_nl = egfr_info$unit_note_nl
     )
   )
 }
@@ -803,41 +843,81 @@ curve_summary <- function(curve, times, probs = c(0.05, 0.5, 0.95)) {
 }
 
 # Samenvatting steady-state metrieken: mediaan, geometrisch gemiddelde + P5/P95
-summarize_metrics <- function(metrics, tau = 24, include_pd = FALSE) {
+summarize_metrics <- function(metrics, tau = 24, include_pd = FALSE, lang = "en") {
+  is_nl <- identical(lang, "nl")
   cols <- c("Cmax", "Tmax", "Cmin", "AUCtau", "AUCu", "Cavg", "t_half")
-  labels <- if (isTRUE(include_pd)) {
-    c(
-      "Cmax,ss totaal (ng/mL)",
-      "Tmax (uur)",
-      sprintf("Cmin,ss = C%.0f totaal (ng/mL)", tau),
-      "AUCtau,ss totaal (ng*h/mL)",
-      "AUCu,ss ongebonden (ng*h/mL)",
-      "Cavg,ss totaal (ng/mL)",
-      "Terminale t1/2,beta (uur)"
-    )
+  labels <- if (is_nl) {
+    if (isTRUE(include_pd)) {
+      c(
+        "Cmax,ss totaal (ng/mL)",
+        "Tmax (uur)",
+        sprintf("Cmin,ss = C%.0f totaal (ng/mL)", tau),
+        "AUCtau,ss totaal (ng*h/mL)",
+        "AUCu,ss ongebonden (ng*h/mL)",
+        "Cavg,ss totaal (ng/mL)",
+        "Terminale t1/2,beta (uur)"
+      )
+    } else {
+      c(
+        "Cmax,ss (ng/mL)",
+        "Tmax (uur)",
+        sprintf("Cmin,ss = C%.0f (ng/mL)", tau),
+        "AUCtau,ss totaal (ng*h/mL)",
+        "AUCu,ss ongebonden (ng*h/mL)",
+        "Cavg,ss totaal (ng/mL)",
+        "Terminale t1/2,beta (uur)"
+      )
+    }
   } else {
-    c(
-      "Cmax,ss (ng/mL)",
-      "Tmax (uur)",
-      sprintf("Cmin,ss = C%.0f (ng/mL)", tau),
-      "AUCtau,ss totaal (ng*h/mL)",
-      "AUCu,ss ongebonden (ng*h/mL)",
-      "Cavg,ss totaal (ng/mL)",
-      "Terminale t1/2,beta (uur)"
-    )
+    if (isTRUE(include_pd)) {
+      c(
+        "Cmax,ss total (ng/mL)",
+        "Tmax (h)",
+        sprintf("Cmin,ss = C%.0f total (ng/mL)", tau),
+        "AUCtau,ss total (ng*h/mL)",
+        "AUCu,ss unbound (ng*h/mL)",
+        "Cavg,ss total (ng/mL)",
+        "Terminal t1/2,beta (h)"
+      )
+    } else {
+      c(
+        "Cmax,ss (ng/mL)",
+        "Tmax (h)",
+        sprintf("Cmin,ss = C%.0f (ng/mL)", tau),
+        "AUCtau,ss total (ng*h/mL)",
+        "AUCu,ss unbound (ng*h/mL)",
+        "Cavg,ss total (ng/mL)",
+        "Terminal t1/2,beta (h)"
+      )
+    }
   }
   if (isTRUE(include_pd)) {
     cols <- c(cols, "Cu_max", "Cu_min", "AUCu_24h", "SGLT2_inh_avg", "SGLT2_inh_min", "Renal_PD_eff", "E_TGF_pct", "E_HCT_pct")
     labels <- c(
       labels,
-      "Cu,max,ss ongebonden (ng/mL)",
-      sprintf("Cu,min,ss = Cu%.0f ongebonden (ng/mL)", tau),
-      "AUCu,24u-eq ongebonden (ng*h/mL)",
-      "Luminale SGLT2-remming gem. over interval (%)",
-      "Luminale SGLT2-remming op dalspiegel (%)",
-      "GFR-gekoppelde renale PD-index (% van rijpe nefroncap.)",
-      "Cardiorenaal TGF-effect (% van Emax; Kroonen 2020)",
-      "Systemisch/HCT-effect (% van Emax; Kroonen 2020)"
+      if (is_nl) {
+        c(
+          "Cu,max,ss ongebonden (ng/mL)",
+          sprintf("Cu,min,ss = Cu%.0f ongebonden (ng/mL)", tau),
+          "AUCu,24u-eq ongebonden (ng*h/mL)",
+          "Luminale SGLT2-remming gem. over interval (%)",
+          "Luminale SGLT2-remming op dalspiegel (%)",
+          "GFR-gekoppelde renale PD-index (% van rijpe nefroncap.)",
+          "Cardiorenaal TGF-effect (% van Emax; Kroonen 2020)",
+          "Systemisch/HCT-effect (% van Emax; Kroonen 2020)"
+        )
+      } else {
+        c(
+          "Cu,max,ss unbound (ng/mL)",
+          sprintf("Cu,min,ss = Cu%.0f unbound (ng/mL)", tau),
+          "AUCu,24h-eq unbound (ng*h/mL)",
+          "Luminal SGLT2 inhibition mean over interval (%)",
+          "Luminal SGLT2 inhibition at trough (%)",
+          "GFR-coupled renal PD index (% of mature nephron cap.)",
+          "Cardiorenal TGF effect (% of Emax; Kroonen 2020)",
+          "Systemic/HCT effect (% of Emax; Kroonen 2020)"
+        )
+      }
     )
   }
   present <- cols %in% names(metrics)
@@ -848,12 +928,16 @@ summarize_metrics <- function(metrics, tau = 24, include_pd = FALSE) {
     x <- x[!is.na(x)]
     if (length(x) > 0 && all(x > 0)) exp(mean(log(x))) else NA_real_
   }
-  data.frame(
-    Metriek      = labels,
-    Mediaan      = sapply(metrics[cols], stats::median, na.rm = TRUE),
-    `Geom. gem.` = sapply(metrics[cols], geomean),
+  out <- data.frame(
+    Metric       = labels,
+    Median       = sapply(metrics[cols], stats::median, na.rm = TRUE),
+    `Geom. mean` = sapply(metrics[cols], geomean),
     P5           = sapply(metrics[cols], function(x) stats::quantile(x, 0.05, names = FALSE, na.rm = TRUE)),
     P95          = sapply(metrics[cols], function(x) stats::quantile(x, 0.95, names = FALSE, na.rm = TRUE)),
     check.names  = FALSE
   )
+  if (is_nl) {
+    names(out) <- c("Metriek", "Mediaan", "Geom. gem.", "P5", "P95")
+  }
+  out
 }

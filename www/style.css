@@ -2,6 +2,86 @@ body {
   font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
 }
 
+/* Header met titel en EN/NL taalschakelaar */
+.app-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 14px 0 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #dce6f2;
+}
+.app-main-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #08306b;
+  line-height: 1.25;
+  flex: 1 1 480px;
+}
+.lang-switch-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #eef4fa;
+  border: 1px solid #c3d6ec;
+  border-radius: 999px;
+  padding: 4px 5px 4px 12px;
+  flex-shrink: 0;
+}
+.lang-switch-icon {
+  color: #08306b;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+}
+#lang {
+  margin: 0;
+}
+#lang .shiny-options-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin: 0;
+}
+#lang label.radio-inline {
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  position: relative;
+}
+#lang label.radio-inline input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  margin: 0;
+  pointer-events: none;
+}
+#lang label.radio-inline span {
+  display: inline-block;
+  padding: 5px 13px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #08306b;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+#lang label.radio-inline:hover span {
+  background-color: #dce9f7;
+}
+#lang label.radio-inline input[type="radio"]:checked + span {
+  background-color: #08306b;
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(8, 48, 107, 0.25);
+}
+#lang label.radio-inline input[type="radio"]:focus-visible + span {
+  outline: 2px solid #2c7fb8;
+  outline-offset: 2px;
+}
+
 .sidebar {
   background-color: #f5f8fc;
   border-right: 1px solid #dce6f2;
